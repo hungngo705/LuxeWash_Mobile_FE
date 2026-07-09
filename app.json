@@ -1,22 +1,44 @@
 {
   "expo": {
-    "name": "LuxeWash_Mobile_FE",
-    "slug": "LuxeWash_Mobile_FE",
+    "name": "LuxeWash",
+    "slug": "luxewash",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "luxewashmobilefe",
     "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#208AEF"
+    },
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.luxewash.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Cho phép LuxeWash truy cập vị trí của bạn để tìm chi nhánh gần nhất."
+      }
     },
     "android": {
+      "package": "com.luxewash.app",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#208AEF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "VIBRATE",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -41,10 +63,18 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Cho phép LuxeWash truy cập vị trí của bạn để tìm chi nhánh gần nhất."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LuxeWash cần quyền truy cập ảnh để bạn có thể tải lên hình ảnh xe."
+        }
       ]
     ],
     "extra": {
-      "GOONG_API_KEY": "sZV3INYg7A2gklYU5rywAimFUdix3QrrTGn8btWA"
+      "eas": {
+        "projectId": "luxewash-mobile-fe"
+      }
     },
     "experiments": {
       "typedRoutes": true
