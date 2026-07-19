@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
-import Animated, { Easing, Keyframe } from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
+import { Dimensions, StyleSheet, View, Image } from 'react-native';
+import Animated, { Easing, Keyframe, runOnJS } from 'react-native-reanimated';
+import { StatusBar } from 'expo-status-bar';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;
+const SPLASH_BACKGROUND = '#0B1A37';
 
 export function AnimatedSplashOverlay() {
   const [visible, setVisible] = useState(true);
@@ -13,33 +14,39 @@ export function AnimatedSplashOverlay() {
 
   const splashKeyframe = new Keyframe({
     0: {
-      transform: [{ scale: INITIAL_SCALE_FACTOR }],
-      opacity: 1,
-    },
-    20: {
-      opacity: 1,
-    },
-    70: {
       opacity: 0,
-      easing: Easing.elastic(0.7),
+    },
+    30: {
+      opacity: 1,
+    },
+    60: {
+      opacity: 1,
     },
     100: {
       opacity: 0,
-      transform: [{ scale: 1 }],
-      easing: Easing.elastic(0.7),
+      easing: Easing.out(Easing.quad),
     },
   });
 
   return (
-    <Animated.View
-      entering={splashKeyframe.duration(DURATION).withCallback((finished) => {
-        'worklet';
-        if (finished) {
-          scheduleOnRN(setVisible, false);
-        }
-      })}
-      style={styles.backgroundSolidColor}
-    />
+    <>
+      <StatusBar style="light" />
+      <Animated.View
+        entering={splashKeyframe.duration(1200).withCallback((finished) => {
+          'worklet';
+          if (finished) {
+            runOnJS(setVisible)(false);
+          }
+        })}
+        style={styles.splashContainer}
+      >
+        <Image
+          source={require('../../assets/images/logo.png')}
+          style={styles.splashLogo}
+          resizeMode="contain"
+        />
+      </Animated.View>
+    </>
   );
 }
 
@@ -75,7 +82,11 @@ export function AnimatedIcon() {
     <View style={styles.iconContainer}>
       <Animated.View entering={keyframe.duration(DURATION)} style={styles.background} />
       <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
-        <View style={styles.iconPlaceholder} />
+        <Image
+          source={require('../../assets/images/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
       </Animated.View>
     </View>
   );
@@ -103,24 +114,31 @@ const styles = StyleSheet.create({
     width: 76,
     height: 71,
   },
+  logo: {
+    width: 76,
+    height: 71,
+  },
   background: {
     borderRadius: 40,
-    backgroundColor: '#0274DF',
+    backgroundColor: SPLASH_BACKGROUND,
     width: 128,
     height: 128,
     position: 'absolute',
   },
   backgroundSolidColor: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#208AEF',
+    backgroundColor: SPLASH_BACKGROUND,
     zIndex: 1000,
   },
-  iconPlaceholder: {
-    width: 76,
-    height: 71,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+  splashContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: SPLASH_BACKGROUND,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1000,
+  },
+  splashLogo: {
+    width: 200,
+    height: 200,
   },
 });
