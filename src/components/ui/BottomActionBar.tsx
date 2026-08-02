@@ -8,14 +8,16 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import { Feather } from '@expo/vector-icons';
 import { LuxeColors, LuxeSpacing, LuxeBorderRadius, LuxeShadows } from '@/constants/luxeTheme';
 
+/** Props của BottomActionBar */
 interface BottomActionBarProps {
   title: string;
   onPress: () => void;
-  loading?: boolean;
+  loading?: boolean; // Đang tải: hiện spinner
   disabled?: boolean;
-  icon?: string;
+  icon?: string; // Tên icon Feather hiển thị trước chữ
 }
 
+/** Thanh hành động cố định ở đáy màn hình với nút CTA chính (dùng ở các bước đặt lịch) */
 export function BottomActionBar({ title, onPress, loading, disabled, icon }: BottomActionBarProps) {
   return (
     <View style={styles.container}>

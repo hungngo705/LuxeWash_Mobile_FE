@@ -28,18 +28,24 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH } = Dimensions.get("window"); // Chiều rộng màn hình để giới hạn kích thước modal
 
+/**
+ * Màn hình Đăng nhập.
+ * Cho phép nhập số điện thoại/email + mật khẩu. Nếu tài khoản chưa xác thực email,
+ * mở modal để gửi lại mã OTP và chuyển sang màn xác thực.
+ */
 export default function LoginScreen() {
   const router = useRouter();
   const { login, isLoggingIn } = useAuth();
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState("");
-  const [pendingEmailError, setPendingEmailError] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState(""); // Số điện thoại/email nhập vào
+  const [password, setPassword] = useState(""); // Mật khẩu
+  const [showPassword, setShowPassword] = useState(false); // Hiện/ẩn mật khẩu
+  const [showOtpModal, setShowOtpModal] = useState(false); // Hiển thị modal xác thực email
+  const [pendingEmail, setPendingEmail] = useState(""); // Email đang chờ xác thực
+  const [pendingEmailError, setPendingEmailError] = useState(""); // Lỗi nhập email trong modal
 
+  // Xử lý đăng nhập: kiểm tra rỗng, gọi login, điều hướng hoặc mở modal xác thực email
   const handleLogin = async () => {
     if (!phoneNumber.trim()) {
       alert("Vui lòng nhập số điện thoại");
@@ -67,6 +73,7 @@ export default function LoginScreen() {
     }
   };
 
+  // Gửi lại OTP: kiểm tra định dạng email, gọi resendOtp rồi sang màn verify-otp nếu thành công
   const handleVerifyOtp = async () => {
     const email = pendingEmail.trim();
     if (!email) {

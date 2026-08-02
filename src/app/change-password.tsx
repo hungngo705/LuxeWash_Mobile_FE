@@ -27,8 +27,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Header } from "@/components/ui/Header";
 
-const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MIN_LENGTH = 8; // Độ dài mật khẩu tối thiểu
 
+/** Lỗi cho từng trường trong form đổi mật khẩu (kèm lỗi từ API). */
 interface FieldErrors {
   oldPassword?: string;
   newPassword?: string;
@@ -36,6 +37,11 @@ interface FieldErrors {
   apiError?: string;
 }
 
+/**
+ * Màn hình Đổi mật khẩu.
+ * Nhập mật khẩu cũ + mật khẩu mới, validate theo quy tắc (độ dài, chữ hoa, chữ số),
+ * gọi API đổi mật khẩu và hiển thị hộp thoại kết quả.
+ */
 export default function ChangePasswordScreen() {
   const router = useRouter();
   const { changePassword } = useAuth();
@@ -43,12 +49,13 @@ export default function ChangePasswordScreen() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showOldPassword, setShowOldPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [showOldPassword, setShowOldPassword] = useState(false); // Hiện/ẩn mật khẩu cũ
+  const [showNewPassword, setShowNewPassword] = useState(false); // Hiện/ẩn mật khẩu mới
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Hiện/ẩn xác nhận
+  const [isSubmitting, setIsSubmitting] = useState(false); // Đang gửi yêu cầu
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({}); // Lỗi từng trường
 
+  // Xóa lỗi của một trường khi người dùng nhập lại
   const clearFieldError = (field: keyof FieldErrors) => {
     setFieldErrors(prev => {
       if (prev[field]) {
@@ -60,6 +67,7 @@ export default function ChangePasswordScreen() {
     });
   };
 
+  // Kiểm tra hợp lệ (kể cả mật khẩu mới không trùng mật khẩu cũ) rồi gọi API đổi mật khẩu
   const validateAndSubmit = async () => {
     const errors: FieldErrors = {};
 
@@ -113,6 +121,7 @@ export default function ChangePasswordScreen() {
     }
   };
 
+  // Tạo một ô nhập mật khẩu dùng chung (có nút hiện/ẩn và hiển thị lỗi)
   const renderPasswordField = (
     label: string,
     value: string,

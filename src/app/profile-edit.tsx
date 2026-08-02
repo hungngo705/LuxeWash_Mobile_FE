@@ -25,10 +25,11 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-const PHONE_REGEX = /^(0[3|5|7|8|9])+([0-9]{8})$/;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const DAYS_OF_WEEK = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const PHONE_REGEX = /^(0[3|5|7|8|9])+([0-9]{8})$/; // Regex số điện thoại Việt Nam
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Regex email cơ bản
+const DAYS_OF_WEEK = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // Nhãn thứ trong tuần cho lịch
 
+/** Lỗi cho từng trường trong form chỉnh sửa hồ sơ (kèm lỗi API). */
 interface FormErrors {
   fullName?: string;
   phoneNumber?: string;
@@ -37,15 +38,18 @@ interface FormErrors {
   api?: string;
 }
 
+/** Một ô ngày trong lưới lịch (null = ô trống đệm đầu tháng). */
 interface CalendarDay {
   date: Date | null;
 }
 
+/** Chuyển chuỗi ISO thành dạng yyyy-mm-dd để đưa vào input. */
 function formatDateForInput(dateStr: string | null | undefined): string {
   if (!dateStr) return "";
   return dateStr.split("T")[0];
 }
 
+/** Định dạng ngày để hiển thị (dd/mm/yyyy), rỗng thì trả về placeholder. */
 function formatDisplayDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "Chọn ngày sinh";
   const d = new Date(dateStr);
@@ -56,6 +60,7 @@ function formatDisplayDate(dateStr: string | null | undefined): string {
   });
 }
 
+/** Lấy 2 chữ cái đầu của tên để hiển thị trên avatar chữ. */
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -65,6 +70,7 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
+/** Chuyển Date sang chuỗi yyyy-mm-dd theo giờ địa phương (tránh lệch múi giờ). */
 function toLocalDateString(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -72,6 +78,7 @@ function toLocalDateString(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Dựng mảng ngày cho lưới lịch của 1 tháng, chèn ô trống đệm cho các ngày đầu tuần. */
 function buildCalendarDays(year: number, month: number): CalendarDay[] {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
@@ -91,6 +98,11 @@ function buildCalendarDays(year: number, month: number): CalendarDay[] {
   return days;
 }
 
+/**
+ * Màn hình Chỉnh sửa hồ sơ cá nhân.
+ * Hiển thị và cho phép sửa họ tên, SĐT, email, ngày sinh (qua lịch hoặc nhập tay).
+ * Chỉ bật nút Lưu khi có thay đổi; gọi API cập nhật rồi làm mới hồ sơ.
+ */
 export default function ProfileEditScreen() {
   const router = useRouter();
   const { user, refreshProfile } = useAuth();
@@ -100,15 +112,16 @@ export default function ProfileEditScreen() {
   const [email, setEmail] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false); // Đang lưu
 
-  // Calendar modal state
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
-  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
-  const [manualDateInput, setManualDateInput] = useState("");
-  const [showManualInput, setShowManualInput] = useState(false);
+  // Calendar modal state — trạng thái của modal chọn ngày sinh
+  const [showCalendar, setShowCalendar] = useState(false); // Hiển thị modal lịch
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear()); // Năm đang xem
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth()); // Tháng đang xem
+  const [manualDateInput, setManualDateInput] = useState(""); // Giá trị nhập tay
+  const [showManualInput, setShowManualInput] = useState(false); // Chế độ nhập tay hay chọn lịch
 
+  // Danh sách ô ngày của tháng đang xem (tính lại khi đổi tháng/năm)
   const calendarDays = useMemo(
     () => buildCalendarDays(calendarYear, calendarMonth),
     [calendarYear, calendarMonth],
@@ -119,6 +132,7 @@ export default function ProfileEditScreen() {
     return d.toLocaleDateString("vi-VN", { month: "long", year: "numeric" });
   }, [calendarYear, calendarMonth]);
 
+  // Ngày sinh đang chọn (chuẩn hóa về 0h để so sánh chính xác)
   const selectedDate = useMemo(() => {
     if (!dateOfBirth) return null;
     const d = new Date(dateOfBirth);
@@ -126,6 +140,7 @@ export default function ProfileEditScreen() {
     return d;
   }, [dateOfBirth]);
 
+  // Nạp dữ liệu người dùng vào form khi user thay đổi
   useEffect(() => {
     if (user) {
       setFullName(user.name || "");
@@ -141,9 +156,11 @@ export default function ProfileEditScreen() {
     }
   }, [user]);
 
+  // Điều hướng năm trước/năm sau
   const handlePrevYear = () => setCalendarYear(calendarYear - 1);
   const handleNextYear = () => setCalendarYear(calendarYear + 1);
 
+  // Về tháng trước (nhảy sang tháng 12 năm trước nếu đang ở tháng 1)
   const handlePrevMonth = () => {
     if (calendarMonth === 0) {
       setCalendarMonth(11);
@@ -153,6 +170,7 @@ export default function ProfileEditScreen() {
     }
   };
 
+  // Sang tháng sau (nhảy sang tháng 1 năm sau nếu đang ở tháng 12)
   const handleNextMonth = () => {
     if (calendarMonth === 11) {
       setCalendarMonth(0);
@@ -162,6 +180,7 @@ export default function ProfileEditScreen() {
     }
   };
 
+  // Chọn một ngày trên lịch: cập nhật ngày sinh và đóng modal
   const handleDaySelect = (day: CalendarDay) => {
     if (!day.date) return;
     const dateStr = toLocalDateString(day.date);

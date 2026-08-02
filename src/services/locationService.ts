@@ -15,14 +15,16 @@ import Constants from 'expo-constants';
 import { getCached, setCached, clearCache } from './geoCacheService';
 import { type BranchDTO } from './api';
 
+/** Một điểm toạ độ địa lý (vĩ độ, kinh độ) */
 export interface GeoPoint {
   latitude: number;
   longitude: number;
 }
 
-const GPS_TIMEOUT_MS = 15000;
-const GPS_MAX_RETRIES = 3;
+const GPS_TIMEOUT_MS = 15000; // Thời gian chờ tối đa mỗi lần lấy GPS (ms)
+const GPS_MAX_RETRIES = 3; // Số lần thử lại lấy GPS
 
+// Khung toạ độ giới hạn lãnh thổ Việt Nam (dùng để loại toạ độ sai)
 const VIETNAM_BOUNDS = {
   minLat: 8.3,
   maxLat: 23.5,
@@ -30,10 +32,12 @@ const VIETNAM_BOUNDS = {
   maxLng: 109.5,
 };
 
+// Hàm chờ (promise) trong một khoảng thời gian
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Kiểm tra toạ độ có nằm trong lãnh thổ Việt Nam không
 function isVietnamLocation(lat: number, lng: number): boolean {
   return (
     lat >= VIETNAM_BOUNDS.minLat &&
@@ -43,6 +47,7 @@ function isVietnamLocation(lat: number, lng: number): boolean {
   );
 }
 
+// Kiểm tra toạ độ hợp lệ: đúng dải lat/lng và nằm trong Việt Nam
 function isValidLocation(lat: number, lng: number): boolean {
   return (
     lat >= -90 && lat <= 90 &&
@@ -51,6 +56,7 @@ function isValidLocation(lat: number, lng: number): boolean {
   );
 }
 
+// Chạy promise với thời gian chờ tối đa; hết giờ thì trả về giá trị fallback
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
   return Promise.race([
     promise,
@@ -71,6 +77,7 @@ export async function getCurrentPosition(): Promise<GeoPoint | null> {
       return null;
     }
 
+    // Thử lấy GPS nhiều lần, giãn cách theo cấp số nhân (exponential backoff)
     for (let attempt = 0; attempt < GPS_MAX_RETRIES; attempt++) {
       try {
         const location = await withTimeout(
@@ -99,6 +106,7 @@ export async function getCurrentPosition(): Promise<GeoPoint | null> {
       }
     }
 
+    // Không lấy được GPS tươi -> thử dùng vị trí biết gần nhất (nếu trong VN)
     try {
       const last = await ExpoLocation.getLastKnownPositionAsync();
       if (last) {
@@ -130,9 +138,11 @@ export async function geocodeAddress(address: string): Promise<GeoPoint | null> 
 
   const normalized = address.trim().toLowerCase().replace(/\s+/g, ' ');
 
+  // Ưu tiên lấy từ cache để khỏi gọi API lặp lại
   const cached = await getCached(normalized);
   if (cached) return cached;
 
+  // Có key Goong thì dùng Goong (tối ưu cho địa chỉ VN), không thì fallback Nominatim
   const apiKey =
     Constants.expoConfig?.extra?.GOONG_API_KEY ??
     process.env.EXPO_PUBLIC_GOONG_API_KEY;
@@ -189,8 +199,9 @@ export async function geocodeBranches(
   onProgress?: (done: number, total: number) => void,
 ): Promise<Map<number, GeoPoint>> {
   const result = new Map<number, GeoPoint>();
-  const toGeocode: Array<{ branch: BranchDTO; address: string }> = [];
+  const toGeocode: Array<{ branch: BranchDTO; address: string }> = []; // Danh sách cần geocode
 
+  // Vòng 1: dùng ngay toạ độ có sẵn hoặc cache; phần còn lại đưa vào hàng đợi
   for (const branch of branches) {
     if (branch.latitude != null && branch.longitude != null) {
       result.set(branch.branchId, { latitude: branch.latitude, longitude: branch.longitude });
@@ -207,6 +218,7 @@ export async function geocodeBranches(
     }
   }
 
+  // Vòng 2: geocode tuần tự, chèn độ trễ để tôn trọng giới hạn tần suất API
   for (let i = 0; i < toGeocode.length; i++) {
     const { branch, address } = toGeocode[i];
 
@@ -215,9 +227,10 @@ export async function geocodeBranches(
       result.set(branch.branchId, coords);
     }
 
-    onProgress?.(result.size, branches.length);
+    onProgress?.(result.size, branches.length); // Báo tiến độ cho UI
 
     if (i < toGeocode.length - 1) {
+      // Cứ mỗi 5 địa chỉ nghỉ lâu hơn (2s), còn lại nghỉ ngắn (400ms)
       if ((i + 1) % 5 === 0) {
         await delay(2000);
       } else {
@@ -271,11 +284,12 @@ export function formatDistance(km: number): string {
   return `${km.toFixed(1)} km`;
 }
 
+// Đối tượng gom các hàm định vị/geocode để import tiện lợi
 export const locationService = {
-  getCurrentPosition,
-  geocodeAddress,
-  clearGeocodeCache,
-  calculateDistance,
-  formatDistance,
-  geocodeBranches,
+  getCurrentPosition, // Lấy vị trí GPS hiện tại
+  geocodeAddress, // Chuyển địa chỉ -> toạ độ
+  clearGeocodeCache, // Xoá cache geocode
+  calculateDistance, // Tính khoảng cách 2 điểm (km)
+  formatDistance, // Định dạng khoảng cách hiển thị
+  geocodeBranches, // Geocode hàng loạt chi nhánh
 };

@@ -8,15 +8,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import type { BranchDTO } from '@/services/api/branchService';
 
-const isWeb = Platform.OS === 'web';
+const isWeb = Platform.OS === 'web'; // Nền web dùng localStorage thay cho AsyncStorage
 
-const HISTORY_KEY = '@luxewash_recent_branches';
-const MAX_RECENT = 3;
+const HISTORY_KEY = '@luxewash_recent_branches'; // Khoá lưu trong storage
+const MAX_RECENT = 3; // Số chi nhánh gần đây tối đa được giữ lại
 
+/** Chi nhánh gần đây = thông tin chi nhánh kèm thời điểm sử dụng */
 export interface RecentBranch extends BranchDTO {
   usedAt: string; // ISO timestamp
 }
 
+// Adapter storage cho web (bọc localStorage để không ném lỗi khi bị chặn)
 const webStorage = {
   async getItem(key: string): Promise<string | null> {
     try {
@@ -96,6 +98,7 @@ export async function clearRecentBranches(): Promise<void> {
   }
 }
 
+// Đối tượng gom các hàm thao tác lịch sử chi nhánh để import tiện lợi
 export const branchHistoryService = {
   getRecentBranches,
   addRecentBranch,

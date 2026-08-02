@@ -27,8 +27,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
-const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MIN_LENGTH = 8; // Độ dài mật khẩu tối thiểu
 
+/** Lỗi cho từng trường trong form đăng ký (kèm lỗi trả về từ API). */
 interface FieldErrors {
   fullName?: string;
   phoneNumber?: string;
@@ -38,6 +39,11 @@ interface FieldErrors {
   apiError?: string;
 }
 
+/**
+ * Màn hình Đăng ký.
+ * Thu thập họ tên, SĐT, email, mật khẩu; validate phía client rồi gọi API đăng ký.
+ * Thành công thì chuyển sang màn xác thực OTP theo email.
+ */
 export default function RegisterScreen() {
   const router = useRouter();
   const { register } = useAuth();
@@ -46,11 +52,12 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false); // Đang gửi đăng ký
+  const [showPassword, setShowPassword] = useState(false); // Hiện/ẩn mật khẩu
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Hiện/ẩn mật khẩu xác nhận
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({}); // Lỗi từng trường
 
+  // Xóa lỗi của một trường khi người dùng bắt đầu nhập lại
   const clearFieldError = (field: keyof FieldErrors) => {
     setFieldErrors(prev => {
       if (prev[field]) {
@@ -62,6 +69,7 @@ export default function RegisterScreen() {
     });
   };
 
+  // Kiểm tra hợp lệ toàn bộ form rồi gửi đăng ký; gom lỗi theo từng trường
   const validateAndSubmit = async () => {
     Keyboard.dismiss();
 
@@ -128,6 +136,7 @@ export default function RegisterScreen() {
     }
   };
 
+  // Hàm tạo một ô nhập liệu dùng chung cho các trường trong form (kèm nút hiện/ẩn mật khẩu và lỗi)
   const renderInput = (
     label: string,
     value: string,

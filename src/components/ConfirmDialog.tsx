@@ -14,17 +14,19 @@ import {
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { LuxeColors, LuxeSpacing, LuxeBorderRadius } from "@/constants/luxeTheme";
 
+/** Tùy chọn khi mở hộp thoại xác nhận. */
 interface ConfirmDialogOptions {
-  title: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-  destructive?: boolean;
-  showCancel?: boolean;
-  onConfirm?: () => void | Promise<void>;
-  onCancel?: () => void;
+  title: string; // Tiêu đề hộp thoại
+  message: string; // Nội dung thông báo
+  confirmText?: string; // Nhãn nút đồng ý (mặc định "OK")
+  cancelText?: string; // Nhãn nút hủy (mặc định "Hủy")
+  destructive?: boolean; // true -> nút xác nhận tô màu cảnh báo (đỏ)
+  showCancel?: boolean; // Có hiện nút hủy hay không
+  onConfirm?: () => void | Promise<void>; // Callback khi bấm xác nhận
+  onCancel?: () => void; // Callback khi bấm hủy
 }
 
+/** Giá trị context: hàm mở hộp thoại xác nhận. */
 interface ConfirmDialogContextType {
   confirm: (options: ConfirmDialogOptions) => void;
 }
@@ -33,10 +35,12 @@ const ConfirmDialogContext = createContext<ConfirmDialogContextType>({
   confirm: () => {},
 });
 
+/** Hook lấy hàm confirm() để mở hộp thoại xác nhận từ bất kỳ component nào. */
 export function useConfirmDialog() {
   return useContext(ConfirmDialogContext);
 }
 
+/** Trạng thái nội bộ của provider — lưu cấu hình hộp thoại hiện tại. */
 interface ConfirmDialogState {
   visible: boolean;
   title: string;
@@ -49,7 +53,12 @@ interface ConfirmDialogState {
   onCancel?: () => void;
 }
 
+/**
+ * Provider bao toàn app, cung cấp hàm confirm() và render một hộp thoại dùng chung.
+ * Dùng state React nội bộ nên callback luôn chạy đúng trên cả web lẫn mobile.
+ */
 export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
+  // Cấu hình hộp thoại đang hiển thị
   const [state, setState] = useState<ConfirmDialogState>({
     visible: false,
     title: "",
@@ -60,6 +69,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     showCancel: true,
   });
 
+  // Mở hộp thoại với các tùy chọn truyền vào (điền giá trị mặc định nếu thiếu)
   const confirm = useCallback((options: ConfirmDialogOptions) => {
     setState({
       visible: true,
@@ -74,11 +84,13 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // Đóng hộp thoại rồi chạy callback xác nhận (chờ nếu là async)
   const handleConfirm = useCallback(async () => {
     setState((prev) => ({ ...prev, visible: false }));
     await state.onConfirm?.();
   }, [state.onConfirm]);
 
+  // Đóng hộp thoại rồi chạy callback hủy
   const handleCancel = useCallback(() => {
     setState((prev) => ({ ...prev, visible: false }));
     state.onCancel?.();
@@ -102,6 +114,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Component UI hộp thoại (Modal mờ nền) — chỉ nhận props và render, không giữ logic mở/đóng. */
 function ConfirmDialog({
   visible,
   title,

@@ -1,12 +1,19 @@
+/**
+ * Phiên bản web của icon động (animated-icon).
+ * Trên web dùng placeholder màu đặc thay cho ảnh logo để render mượt trên mọi trình duyệt.
+ */
+
 import { StyleSheet, View } from 'react-native';
 import Animated, { Keyframe, Easing } from 'react-native-reanimated';
 
-const DURATION = 300;
+const DURATION = 300; // Thời lượng animation (ms)
 
+// Trên web không hiện splash overlay
 export function AnimatedSplashOverlay() {
   return null;
 }
 
+// Keyframe phóng to icon nền theo hiệu ứng đàn hồi
 const keyframe = new Keyframe({
   0: {
     transform: [{ scale: 0 }],
@@ -21,6 +28,7 @@ const keyframe = new Keyframe({
   },
 });
 
+// Keyframe hiện dần logo (mờ -> rõ) đồng thời scale nhẹ
 const logoKeyframe = new Keyframe({
   0: {
     opacity: 0,
@@ -37,6 +45,7 @@ const logoKeyframe = new Keyframe({
   },
 });
 
+// Icon động hiển thị trên web: nền màu xanh + placeholder logo
 export function AnimatedIcon() {
   return (
     <View style={styles.iconContainer}>

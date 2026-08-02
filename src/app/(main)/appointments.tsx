@@ -8,10 +8,8 @@ import {
     LuxeShadows
 } from "@/constants/luxeTheme";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-    bookingService,
-    type MyBookingItem
-} from "@/services/api";
+import { useOverloadSuggestions } from "@/contexts/OverloadSuggestionContext";
+import { bookingService, type MyBookingItem } from "@/services/api";
 import {
     formatDate,
     formatTime,
@@ -21,7 +19,7 @@ import {
 } from "@/utils/format";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Dimensions,
@@ -91,6 +89,12 @@ const getStatusStyle = (mapped: string) => {
 export default function AppointmentsScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const {
+    suggestionsByBookingId,
+    discoverSuggestions,
+    openSuggestionForBooking,
+    revision: overloadRevision,
+  } = useOverloadSuggestions();
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [bookings, setBookings] = useState<MyBookingItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,14 +112,22 @@ export default function AppointmentsScreen() {
     try {
       const res = await bookingService.getMyBookings();
       if (res.statusCode === 200 && res.data) {
-        setBookings(Array.isArray(res.data) ? res.data : []);
+        const nextBookings = Array.isArray(res.data) ? res.data : [];
+        setBookings(nextBookings);
+        void discoverSuggestions(nextBookings);
       } else {
         setBookings([]);
       }
     } catch {
       setBookings([]);
     }
-  }, []);
+  }, [discoverSuggestions]);
+
+  useEffect(() => {
+    if (overloadRevision > 0) {
+      void loadBookings();
+    }
+  }, [loadBookings, overloadRevision]);
 
   useFocusEffect(
     useCallback(() => {
@@ -235,6 +247,7 @@ export default function AppointmentsScreen() {
       (v) => v.licensePlate === vehiclePlate,
     );
     const vehicleImage = userVehicle?.imageUrl;
+    const overloadSuggestion = suggestionsByBookingId[item.bookingId];
 
     return (
       <TouchableOpacity
@@ -246,6 +259,26 @@ export default function AppointmentsScreen() {
           style={[styles.cardAccentBar, { backgroundColor: statusStyle.dot }]}
         />
         <View style={styles.cardBody}>
+          {!!overloadSuggestion && (
+            <TouchableOpacity
+              style={styles.relocationBanner}
+              activeOpacity={0.85}
+              onPress={() => void openSuggestionForBooking(item)}
+            >
+              <View style={styles.relocationBannerIcon}>
+                <Feather name="alert-circle" size={16} color="#DC2626" />
+              </View>
+              <View style={styles.relocationBannerContent}>
+                <Text style={styles.relocationBannerTitle}>
+                  Chi nhánh quá tải — có đề xuất dời lịch
+                </Text>
+                <Text style={styles.relocationBannerSubtitle} numberOfLines={1}>
+                  Đổi sang {overloadSuggestion.suggestedBranchName} và nhận voucher
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#DC2626" />
+            </TouchableOpacity>
+          )}
           <View style={styles.cardHeader}>
             <View style={styles.dateTimeRow}>
               <Feather
@@ -599,6 +632,7 @@ export default function AppointmentsScreen() {
           </Pressable>
         </SafeAreaProvider>
       </Modal>
+
     </View>
   );
 }
@@ -722,6 +756,33 @@ const styles = StyleSheet.create({
   },
   cardAccentBar: { width: 5 },
   cardBody: { flex: 1, padding: 16 },
+  relocationBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+  },
+  relocationBannerIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#FEE2E2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  relocationBannerContent: { flex: 1 },
+  relocationBannerTitle: { fontSize: 13, fontWeight: "700", color: "#DC2626" },
+  relocationBannerSubtitle: {
+    fontSize: 12,
+    color: "#B91C1C",
+    marginTop: 1,
+  },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",

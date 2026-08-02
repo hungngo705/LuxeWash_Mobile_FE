@@ -6,11 +6,12 @@ import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { LuxeColors } from '@/constants/luxeTheme';
 
+/** Props của GradientCard */
 interface GradientCardProps {
   children: React.ReactNode;
   style?: ViewStyle;
-  from?: string;
-  to?: string;
+  from?: string; // Màu bắt đầu gradient (được dùng làm nền đặc)
+  to?: string; // Màu kết thúc gradient
 }
 
 /**

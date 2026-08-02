@@ -1,8 +1,12 @@
 /**
  * LuxeWash Theme - LuxeWash Bold Design System
  * Professional, clean design with gradient accents and modern shadows
+ *
+ * Hệ thống thiết kế (design system) của app: bảng màu, màu hạng thành viên,
+ * cấu hình quyền lợi theo hạng, khoảng cách, bo góc và đổ bóng dùng chung.
  */
 
+/** Bảng màu chủ đạo của ứng dụng (theo chuẩn Material color roles) */
 export const LuxeColors = {
   // Primary palette
   primary: '#006689',
@@ -65,6 +69,7 @@ export const LuxeColors = {
 } as const;
 
 // Membership tier colors
+// Màu đại diện cho từng hạng thành viên
 export const MembershipColors = {
   standard: '#6f787f',
   silver: '#9CA3AF',
@@ -73,17 +78,22 @@ export const MembershipColors = {
   diamond: '#06B6D4',
 } as const;
 
+/** Các hạng thành viên */
 export type MembershipTier = 'standard' | 'silver' | 'gold' | 'platinum' | 'diamond';
 
 // Membership benefits configuration
+/**
+ * Cấu hình quyền lợi theo từng hạng thành viên:
+ * số ngày đặt trước tối đa, màu, danh sách quyền lợi, tỉ lệ giảm giá, hệ số điểm.
+ */
 export const MembershipConfig: Record<MembershipTier, {
   name: string;
   nameVi: string;
-  maxAdvanceDays: number;
+  maxAdvanceDays: number; // Số ngày được đặt lịch trước tối đa
   color: string;
   benefits: string[];
-  discountRate: number;
-  pointMultiplier: number;
+  discountRate: number; // Tỉ lệ giảm giá (0.05 = 5%)
+  pointMultiplier: number; // Hệ số nhân điểm tích luỹ
 }> = {
   standard: {
     name: 'Standard',
@@ -132,6 +142,7 @@ export const MembershipConfig: Record<MembershipTier, {
   },
 };
 
+/** Thang khoảng cách (padding/margin) dùng chung toàn app */
 export const LuxeSpacing = {
   xs: 4,
   sm: 8,
@@ -141,6 +152,7 @@ export const LuxeSpacing = {
   xxl: 32,
 } as const;
 
+/** Thang bo góc dùng chung (full = bo tròn hoàn toàn) */
 export const LuxeBorderRadius = {
   sm: 4,
   md: 8,
@@ -149,6 +161,7 @@ export const LuxeBorderRadius = {
   full: 9999,
 } as const;
 
+/** Các mức đổ bóng dùng chung (sm -> xl tăng dần; primary cho phần tử nổi bật) */
 export const LuxeShadows = {
   sm: {
     shadowColor: '#4aa9d7',
