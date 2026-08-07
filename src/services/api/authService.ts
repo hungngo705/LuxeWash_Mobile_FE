@@ -86,6 +86,18 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
+/** Dữ liệu yêu cầu gửi OTP đặt lại mật khẩu qua email */
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+/** Dữ liệu xác thực OTP và đặt mật khẩu mới */
+export interface ResetPasswordRequest {
+  email: string;
+  otp: string;
+  newPassword: string;
+}
+
 /** Dữ liệu cập nhật hồ sơ (mọi field đều tuỳ chọn) */
 export interface UpdateProfileRequest {
   fullName?: string;
@@ -147,6 +159,16 @@ export const authService = {
   /** Đổi mật khẩu tài khoản */
   changePassword: async (data: ChangePasswordRequest): Promise<ApiResponse<void>> => {
     return apiClient.post<void>('/auth/change-password', data);
+  },
+
+  /** Gửi OTP đặt lại mật khẩu đến email của tài khoản đang hoạt động */
+  forgotPassword: async (data: ForgotPasswordRequest): Promise<ApiResponse<void>> => {
+    return apiClient.post<void>('/auth/forgot-password', data);
+  },
+
+  /** Xác thực OTP và cập nhật mật khẩu mới */
+  resetPassword: async (data: ResetPasswordRequest): Promise<ApiResponse<void>> => {
+    return apiClient.post<void>('/auth/reset-password', data);
   },
 
   /** Cập nhật thông tin hồ sơ người dùng */
