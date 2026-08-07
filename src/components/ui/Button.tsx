@@ -6,16 +6,18 @@ import React from 'react';
 import { Text, TouchableOpacity, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
 import { LuxeColors, LuxeSpacing, LuxeBorderRadius, LuxeShadows } from '@/constants/luxeTheme';
 
+/** Props nút chính (Primary) */
 interface PrimaryButtonProps {
   title: string;
   onPress: () => void;
-  loading?: boolean;
+  loading?: boolean; // Đang tải: hiện spinner thay chữ
   disabled?: boolean;
   style?: ViewStyle;
-  icon?: React.ReactNode;
+  icon?: React.ReactNode; // Icon hiển thị trước chữ
   size?: 'sm' | 'md' | 'lg';
 }
 
+/** Props nút phụ (Secondary) */
 interface SecondaryButtonProps {
   title: string;
   onPress: () => void;
@@ -25,12 +27,14 @@ interface SecondaryButtonProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
+// Bảng kích thước theo size: padding và cỡ chữ
 const sizeStyles = {
   sm: { paddingVertical: 10, paddingHorizontal: 16, fontSize: 13 },
   md: { paddingVertical: 14, paddingHorizontal: 24, fontSize: 15 },
   lg: { paddingVertical: 16, paddingHorizontal: 32, fontSize: 16 },
 };
 
+/** Nút hành động chính (nền đặc, nổi bật) */
 export function PrimaryButton({ title, onPress, loading, disabled, style, icon, size = 'md' }: PrimaryButtonProps) {
   const s = sizeStyles[size];
   return (
@@ -57,6 +61,7 @@ export function PrimaryButton({ title, onPress, loading, disabled, style, icon, 
   );
 }
 
+/** Nút phụ (viền, nền trong suốt) cho hành động ít ưu tiên hơn */
 export function SecondaryButton({ title, onPress, disabled, style, icon, size = 'md' }: SecondaryButtonProps) {
   const s = sizeStyles[size];
   return (

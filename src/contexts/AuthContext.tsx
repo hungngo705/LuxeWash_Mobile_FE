@@ -1,6 +1,10 @@
 /**
  * LuxeWash Authentication Context
  * Handles user login/logout state with real API integration
+ *
+ * Context xác thực: quản lý trạng thái người dùng (đăng nhập/đăng xuất),
+ * số dư ví, danh sách xe, và cung cấp các hàm login/register/logout/đổi mật khẩu...
+ * cho toàn bộ ứng dụng qua hook useAuth().
  */
 
 import React, {
@@ -13,10 +17,16 @@ import React, {
   useState,
 } from "react";
 import { authService, type UserProfile } from "../services/api/authService";
-import { ApiError, getStoredTokens, setSessionExpiredHandler } from "../services/api/client";
+import {
+  ApiError,
+  getStoredTokens,
+  setSessionExpiredHandler,
+} from "../services/api/client";
 import { vehicleService, type VehicleResponse } from "../services/api/vehicleService";
 import { walletService } from "../services/api/walletService";
+import { unregisterCurrentDevicePushToken } from "../services/pushNotificationService";
 
+/** Mô hình xe hiển thị trong app (đã chuẩn hoá từ dữ liệu API) */
 export interface Vehicle {
   id: string;
   licensePlate: string;
@@ -31,38 +41,41 @@ export interface Vehicle {
   createdAt: Date;
 }
 
+/** Người dùng đã đăng nhập (gộp thông tin hồ sơ + hạng thành viên + xe) */
 export interface AuthUser {
   id: string;
   phoneNumber: string;
   email?: string;
   name: string;
-  role: "customer" | "staff" | "admin";
   membershipId: string;
-  membershipTier: "standard" | "silver" | "gold" | "platinum" | "diamond";
-  loyaltyPoints: number;
+  membershipTier: "standard" | "silver" | "gold" | "platinum" | "diamond"; // Hạng thành viên
+  loyaltyPoints: number; // Điểm tích luỹ
   createdAt: Date;
   updatedAt: Date;
   vehicles: Vehicle[];
   status?: string;
   dateOfBirth?: string | null;
-  promotionPoint?: number;
-  churnScore?: number;
+  promotionPoint?: number; // Điểm khuyến mãi
+  churnScore?: number; // Điểm dự đoán rời bỏ (dùng cho ưu đãi giữ chân)
 }
 
+/** Thông tin đăng nhập: số điện thoại hoặc email + mật khẩu */
 interface LoginCredentials {
   phoneOrEmail: string;
   password: string;
 }
 
+/** Trạng thái nội bộ của context xác thực */
 interface AuthState {
   user: AuthUser | null;
-  walletBalance: number;
-  isLoading: boolean;
-  isLoggingIn: boolean;
-  isRegistering: boolean;
+  walletBalance: number; // Số dư ví
+  isLoading: boolean; // Đang khôi phục phiên khi mở app
+  isLoggingIn: boolean; // Đang xử lý đăng nhập
+  isRegistering: boolean; // Đang xử lý đăng ký
   isAuthenticated: boolean;
 }
 
+/** Giá trị context cung cấp ra ngoài: trạng thái + các hành động */
 interface AuthContextType extends AuthState {
   login: (
     credentials: LoginCredentials,
@@ -93,14 +106,15 @@ interface AuthContextType extends AuthState {
     userId: string,
     phoneNumber: string,
     fullName: string,
-    role: string,
   ) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Nguồn dữ liệu xe có thể đến từ API xe hoặc từ hồ sơ người dùng
 type VehicleSource = VehicleResponse | UserProfile["vehicles"][number];
 
+// Chuẩn hoá dữ liệu xe từ API về mô hình Vehicle dùng trong app
 function mapVehicleApiToVehicle(v: VehicleSource, userId: string): Vehicle {
   return {
     id: v.licensePlate,
@@ -117,6 +131,7 @@ function mapVehicleApiToVehicle(v: VehicleSource, userId: string): Vehicle {
   };
 }
 
+/** Provider bọc toàn app, cung cấp trạng thái và hành động xác thực */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -127,8 +142,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
   });
 
+  // Tham chiếu tới hàm logout để handler hết phiên gọi được (tránh phụ thuộc vòng)
   const logoutRef = useRef<(() => Promise<void>) | null>(null);
 
+  // Khi token hết hạn không refresh được, tự động đăng xuất
   useEffect(() => {
     const handleSessionExpired = () => {
       logoutRef.current?.();
@@ -139,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Khi mở app: nếu có token đã lưu thì khôi phục phiên đăng nhập
   useEffect(() => {
     const restoreSession = async () => {
       try {
@@ -184,7 +202,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             phoneNumber: profile.phoneNumber,
             name: profile.fullName,
             email: profile.email ?? undefined,
-            role: "customer" as const,
             membershipId: profile.tierName?.toLowerCase() || "standard",
             membershipTier: (profile.tierName?.toLowerCase() ||
               "standard") as any,
@@ -217,6 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     restoreSession();
   }, []);
 
+  // Lấy song song hồ sơ + số dư ví + danh sách xe (dùng lại ở nhiều nơi)
   const fetchProfileAndWallet = async (userId: string) => {
     const [profileRes, walletRes, vehiclesRes] = await Promise.all([
       authService.getProfile(),
@@ -239,6 +257,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   };
 
+  /**
+   * Đăng nhập bằng SĐT/email + mật khẩu.
+   * Trả về unverifiedEmail nếu tài khoản chưa xác thực email (để điều hướng OTP).
+   */
   const login = async (
     credentials: LoginCredentials,
   ): Promise<{ success: boolean; error?: string; unverifiedEmail?: string }> => {
@@ -250,6 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password: credentials.password,
       });
 
+      // 401 kèm thông điệp "xác thực" => tài khoản chưa xác thực email
       if (response.statusCode === 401 &&
           response.message?.toLowerCase().includes("xác thực")) {
         const email = credentials.phoneOrEmail.includes("@")
@@ -280,10 +303,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: String(loginData.userId),
         phoneNumber: loginData.phoneNumber,
         name: loginData.fullName,
-        role: (loginData.role?.toLowerCase() || "customer") as
-          | "customer"
-          | "staff"
-          | "admin",
         membershipId: profile?.tierName?.toLowerCase() || "standard",
         membershipTier: (profile?.tierName?.toLowerCase() || "standard") as any,
         loyaltyPoints: profile?.totalPoint ?? 0,
@@ -323,6 +342,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Tải lại hồ sơ + ví + xe và cập nhật vào state (giữ nguyên các trường không đổi)
   const refreshProfile = async () => {
     if (!state.user) return;
     const { profile, walletBalance, vehicles } = await fetchProfileAndWallet(
@@ -352,6 +372,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  // Đăng ký tài khoản mới (thành công khi statusCode 201; sau đó thường cần xác thực OTP)
   const register = async (
     phoneNumber: string,
     email: string,
@@ -387,6 +408,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Chỉ tải lại số dư ví (dùng sau khi nạp tiền/thanh toán)
   const refreshWallet = async () => {
     try {
       const walletRes = await walletService.getBalance();
@@ -401,11 +423,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Đăng nhập ngay sau khi xác thực OTP thành công (không cần nhập lại mật khẩu)
   const loginFromOtp = async (
     userId: string,
     phoneNumber: string,
     fullName: string,
-    role: string,
   ): Promise<void> => {
     const { profile, walletBalance, vehicles } = await fetchProfileAndWallet(userId);
     const authUser: AuthUser = {
@@ -413,10 +435,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       phoneNumber: profile?.phoneNumber ?? phoneNumber,
       name: profile?.fullName ?? fullName,
       email: profile?.email ?? undefined,
-      role: (role?.toLowerCase() || "customer") as
-        | "customer"
-        | "staff"
-        | "admin",
       membershipId: profile?.tierName?.toLowerCase() || "standard",
       membershipTier: (profile?.tierName?.toLowerCase() || "standard") as any,
       loyaltyPoints: profile?.totalPoint ?? 0,
@@ -438,7 +456,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  // Đăng xuất: gỡ token đẩy, gọi API logout và xoá state cục bộ
   const logout = useCallback(async () => {
+    try {
+      await unregisterCurrentDevicePushToken();
+    } catch {
+      // Logout must still clear the local session if token cleanup fails.
+    }
     await authService.logout();
     setState({
       user: null,
@@ -450,8 +474,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  logoutRef.current = logout;
+  logoutRef.current = logout; // Cập nhật ref để handler hết phiên dùng bản logout mới nhất
 
+  // Thêm xe mới (kèm ảnh đăng ký nếu có) rồi tải lại hồ sơ
   const addVehicle = async (
     licensePlate: string,
     vehicleTypeId: number,
@@ -480,6 +505,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Xoá xe theo biển số rồi tải lại hồ sơ
   const removeVehicle = async (
     licensePlate: string,
   ): Promise<{ success: boolean; error?: string }> => {
@@ -499,6 +525,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Đổi mật khẩu (mật khẩu cũ -> mật khẩu mới)
   const changePassword = async (
     oldPassword: string,
     newPassword: string,
@@ -542,6 +569,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Hook truy cập context xác thực; phải dùng bên trong <AuthProvider> */
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

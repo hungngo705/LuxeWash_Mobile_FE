@@ -6,21 +6,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const CACHE_KEY = '@luxewash_geo_cache';
+const CACHE_KEY = '@luxewash_geo_cache'; // Khoá lưu cache toạ độ
 
+/** Một bản ghi cache: toạ độ đã geocode kèm thời điểm lưu */
 interface CachedEntry {
   latitude: number;
   longitude: number;
   cachedAt: number;
 }
 
+/** Cấu trúc cache: ánh xạ địa chỉ (đã chuẩn hoá) -> toạ độ */
 interface GeoCache {
   [normalizedAddress: string]: CachedEntry;
 }
 
-const isWeb = Platform.OS === 'web';
+const isWeb = Platform.OS === 'web'; // Web dùng localStorage
 
-const webCache: GeoCache = {};
+const webCache: GeoCache = {}; // Bản sao trong bộ nhớ cho nền web
 
 async function webGet<T>(key: string): Promise<T | null> {
   try {
@@ -47,6 +49,7 @@ async function webDel(key: string): Promise<void> {
   }
 }
 
+// Đọc toàn bộ cache từ storage (web hoặc AsyncStorage), trả về {} nếu lỗi
 async function getCache(): Promise<GeoCache> {
   if (isWeb) {
     const val = await webGet<GeoCache>(CACHE_KEY);
@@ -60,6 +63,7 @@ async function getCache(): Promise<GeoCache> {
   }
 }
 
+// Ghi toàn bộ cache xuống storage
 async function saveCache(cache: GeoCache): Promise<void> {
   if (isWeb) {
     Object.assign(webCache, cache);
@@ -69,6 +73,7 @@ async function saveCache(cache: GeoCache): Promise<void> {
   }
 }
 
+// Chuẩn hoá địa chỉ làm khoá cache: bỏ khoảng trắng thừa, chữ thường
 function normalize(address: string): string {
   return address.trim().toLowerCase().replace(/\s+/g, ' ');
 }

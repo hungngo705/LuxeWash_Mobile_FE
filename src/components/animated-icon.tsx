@@ -1,17 +1,29 @@
+/**
+ * Icon động và lớp phủ splash (native).
+ * Dùng react-native-reanimated Keyframe để tạo hiệu ứng logo bật ra khi mở app.
+ */
+
 import { useState } from 'react';
 import { Dimensions, StyleSheet, View, Image } from 'react-native';
 import Animated, { Easing, Keyframe, runOnJS } from 'react-native-reanimated';
 import { StatusBar } from 'expo-status-bar';
 
+// Hệ số scale khởi đầu tính theo chiều cao màn hình (icon phóng to cực đại rồi thu về)
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
-const DURATION = 600;
-const SPLASH_BACKGROUND = '#0B1A37';
+const DURATION = 600; // Thời lượng animation icon (ms)
+const SPLASH_BACKGROUND = '#0B1A37'; // Màu nền splash
 
+/**
+ * AnimatedSplashOverlay — lớp phủ splash toàn màn hình hiển thị lúc khởi động.
+ * Logo hiện dần lên rồi mờ đi; khi animation kết thúc thì tự ẩn overlay (setVisible false).
+ */
 export function AnimatedSplashOverlay() {
+  // Còn hiển thị overlay hay không
   const [visible, setVisible] = useState(true);
 
   if (!visible) return null;
 
+  // Keyframe điều khiển độ mờ: hiện lên (0->30%), giữ (60%), rồi mờ đi (100%)
   const splashKeyframe = new Keyframe({
     0: {
       opacity: 0,
@@ -32,6 +44,7 @@ export function AnimatedSplashOverlay() {
     <>
       <StatusBar style="light" />
       <Animated.View
+        // Chạy splash trong 1200ms; kết thúc thì ẩn overlay (gọi qua runOnJS vì đang trong worklet)
         entering={splashKeyframe.duration(1200).withCallback((finished) => {
           'worklet';
           if (finished) {
@@ -50,6 +63,7 @@ export function AnimatedSplashOverlay() {
   );
 }
 
+// Keyframe cho nền icon: từ scale rất lớn thu về 1 với hiệu ứng đàn hồi
 const keyframe = new Keyframe({
   0: {
     transform: [{ scale: INITIAL_SCALE_FACTOR }],
@@ -60,6 +74,7 @@ const keyframe = new Keyframe({
   },
 });
 
+// Keyframe cho logo: giữ ẩn (scale 1.3, opacity 0) rồi hiện rõ dần về scale 1
 const logoKeyframe = new Keyframe({
   0: {
     transform: [{ scale: 1.3 }],
@@ -77,9 +92,14 @@ const logoKeyframe = new Keyframe({
   },
 });
 
+/**
+ * AnimatedIcon — icon logo có animation dùng ở màn splash.
+ * Gồm lớp nền bo góc scale vào và logo hiện dần lên trên.
+ */
 export function AnimatedIcon() {
   return (
     <View style={styles.iconContainer}>
+      {/* Nền bo góc màu splash */}
       <Animated.View entering={keyframe.duration(DURATION)} style={styles.background} />
       <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
         <Image

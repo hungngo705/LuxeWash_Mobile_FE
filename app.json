@@ -48,6 +48,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-notifications",
+        {
+          "color": "#0B1A37",
+          "defaultChannel": "overload-alerts"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#0B1A37",

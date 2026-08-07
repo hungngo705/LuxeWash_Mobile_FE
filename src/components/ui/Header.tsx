@@ -7,14 +7,16 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LuxeColors, LuxeSpacing, LuxeShadows } from '@/constants/luxeTheme';
 
+/** Props của Header */
 interface HeaderProps {
   title: string;
-  onBack?: () => void;
-  showBack?: boolean;
-  rightElement?: React.ReactNode;
+  onBack?: () => void; // Xử lý khi bấm nút quay lại
+  showBack?: boolean; // Có hiện nút quay lại không
+  rightElement?: React.ReactNode; // Phần tử tuỳ chỉnh bên phải
   backgroundColor?: string;
 }
 
+/** Thanh tiêu đề dùng chung cho mọi màn hình (nút back trái, tiêu đề giữa, phần tử phải) */
 export function Header({ title, onBack, showBack = true, rightElement, backgroundColor = '#ffffff' }: HeaderProps) {
   return (
     <View style={[styles.header, { backgroundColor }]}>

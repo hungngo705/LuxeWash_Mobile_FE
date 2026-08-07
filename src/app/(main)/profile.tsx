@@ -4,9 +4,7 @@
  */
 
 import {
-  LuxeBorderRadius,
   LuxeColors,
-  LuxeSpacing,
   LuxeShadows,
   MembershipConfig,
 } from "@/constants/luxeTheme";
@@ -200,7 +198,7 @@ export default function ProfileScreen() {
 
           {/* Menu List */}
           <View style={styles.menuCard}>
-            {user?.role === "customer" && (
+            {user && (
               <TouchableOpacity
                 style={styles.menuItem}
                 onPress={() => router.push("/vehicles" as any)}
@@ -237,23 +235,6 @@ export default function ProfileScreen() {
                 <Feather name="chevron-right" size={20} color={LuxeColors.outline} />
               </TouchableOpacity>
             ))}
-            {user?.role === "staff" && (
-              <TouchableOpacity
-                style={[styles.menuItem, styles.menuItemLast]}
-                onPress={() => router.push("/staff/lpr-checkin" as any)}
-              >
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.menuIconWrap, { backgroundColor: LuxeColors.primaryContainer + '18' }]}>
-                    <Feather name="truck" size={18} color={LuxeColors.primaryContainer} />
-                  </View>
-                  <View style={styles.menuItemContent}>
-                    <Text style={styles.menuTitle}>Chế độ Staff</Text>
-                    <Text style={styles.menuSubtitle}>LPR Check-in</Text>
-                  </View>
-                </View>
-                <Feather name="chevron-right" size={20} color={LuxeColors.outline} />
-              </TouchableOpacity>
-            )}
           </View>
 
           {/* Logout */}

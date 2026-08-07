@@ -37,9 +37,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const DAYS_OF_WEEK = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const PERIOD_LABEL: Record<string, string> = {
-  morning: "SÃ¡ng",
-  afternoon: "Chiá»u",
-  evening: "Tá»‘i",
+  morning: "Sáng",
+  afternoon: "Chiều",
+  evening: "Tối",
 };
 const RESCHEDULABLE_STATUSES = ["Pending", "Confirmed"];
 
@@ -63,8 +63,8 @@ const normalizeServiceName = (value: string): string =>
   value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/Ä‘/g, "d")
-    .replace(/Ä/g, "D")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
@@ -158,23 +158,23 @@ export default function RescheduleBookingScreen() {
   const hardBlocker = useMemo(() => {
     if (!booking) return null;
     if (!RESCHEDULABLE_STATUSES.includes(booking.status)) {
-      return "Chá»‰ cÃ³ thá»ƒ thay Ä‘á»•i lá»‹ch háº¹n á»Ÿ tráº¡ng thÃ¡i Pending hoáº·c Confirmed.";
+      return "Chỉ có thể thay đổi lịch hẹn ở trạng thái Pending hoặc Confirmed.";
     }
     if (hoursUntilOldSchedule != null && hoursUntilOldSchedule < 2) {
-      return "Chá»‰ cÃ³ thá»ƒ thay Ä‘á»•i lá»‹ch háº¹n trÆ°á»›c 2 tiáº¿ng so vá»›i giá» báº¯t Ä‘áº§u.";
+      return "Chỉ có thể thay đổi lịch hẹn trước 2 tiếng so với giờ bắt đầu.";
     }
     if (!userVehicle) {
-      return "KhÃ´ng tÃ¬m tháº¥y xe nÃ y trong há»“ sÆ¡ cá»§a báº¡n.";
+      return "Không tìm thấy xe này trong hồ sơ của bạn.";
     }
     if (!userVehicle.vehicleTypeId) {
-      return "KhÃ´ng xÃ¡c Ä‘á»‹nh Ä‘Æ°á»£c loáº¡i xe Ä‘á»ƒ kiá»ƒm tra lá»‹ch trá»‘ng.";
+      return "Không xác định được loại xe để kiểm tra lịch trống.";
     }
     return null;
   }, [booking, hoursUntilOldSchedule, userVehicle]);
 
   const loadInitialData = useCallback(async () => {
     if (!bookingId) {
-      setError("KhÃ´ng tÃ¬m tháº¥y mÃ£ lá»‹ch háº¹n.");
+      setError("Không tìm thấy mã lịch hẹn.");
       setLoading(false);
       return;
     }
@@ -189,7 +189,7 @@ export default function RescheduleBookingScreen() {
       setBooking(bookingRes.data);
       setBranches(Array.isArray(branchRes.data) ? branchRes.data : []);
     } catch (e: unknown) {
-      setError(getErrorMessage(e, "KhÃ´ng thá»ƒ táº£i thÃ´ng tin Ä‘á»•i lá»‹ch."));
+      setError(getErrorMessage(e, "Không thể tải thông tin đổi lịch."));
     } finally {
       setLoading(false);
     }
@@ -278,7 +278,7 @@ export default function RescheduleBookingScreen() {
       );
       setSlots(Array.isArray(res.data) ? res.data : []);
     } catch (e: unknown) {
-      setSlotError(getErrorMessage(e, "KhÃ´ng thá»ƒ táº£i lá»‹ch trá»‘ng."));
+      setSlotError(getErrorMessage(e, "Không thể tải lịch trống."));
     } finally {
       setLoadingSlots(false);
     }
@@ -303,14 +303,14 @@ export default function RescheduleBookingScreen() {
       );
       if (missing.length > 0 || ids.length === 0) {
         setServiceError(
-          `KhÃ´ng tÃ¬m tháº¥y dá»‹ch vá»¥ Ä‘Ã£ Ä‘áº·t táº¡i chi nhÃ¡nh nÃ y: ${missing.join(", ") || "dá»‹ch vá»¥ Ä‘Ã£ Ä‘áº·t"}.`,
+          `Không tìm thấy dịch vụ đã đặt tại chi nhánh này: ${missing.join(", ") || "dịch vụ đã đặt"}.`,
         );
         return;
       }
       setServiceIds(ids);
     } catch (e: unknown) {
       setServiceError(
-        getErrorMessage(e, "KhÃ´ng thá»ƒ táº£i dá»‹ch vá»¥ cá»§a chi nhÃ¡nh."),
+        getErrorMessage(e, "Không thể tải dịch vụ của chi nhánh."),
       );
     } finally {
       setLoadingServices(false);
@@ -352,7 +352,7 @@ export default function RescheduleBookingScreen() {
     if (!booking || !selectedDate || !selectedSlot) return;
     const blocker = hardBlocker || serviceError;
     if (blocker) {
-      Alert.alert("KhÃ´ng thá»ƒ Ä‘á»•i lá»‹ch", blocker);
+      Alert.alert("Không thể đổi lịch", blocker);
       return;
     }
 
@@ -362,17 +362,21 @@ export default function RescheduleBookingScreen() {
         newScheduledDate: toUTCMidnight(selectedDate),
         newSlotId: selectedSlot.slotId,
       });
-      const message = res.message || "ÄÃ£ thay Ä‘á»•i lá»‹ch háº¹n thÃ nh cÃ´ng.";
-      Alert.alert("Äá»•i lá»‹ch thÃ nh cÃ´ng", message, [
+      const message = /^booking rescheduled successfully\.?$/i.test(
+        res.message?.trim() ?? "",
+      )
+        ? "Đã thay đổi lịch hẹn thành công."
+        : res.message || "Đã thay đổi lịch hẹn thành công.";
+      Alert.alert("Đổi lịch thành công", message, [
         {
-          text: "ÄÃ£ hiá»ƒu",
+          text: "Đã hiểu",
           onPress: () => router.replace(`/booking/${booking.bookingId}` as any),
         },
       ]);
     } catch (e: unknown) {
       Alert.alert(
-        "KhÃ´ng thá»ƒ Ä‘á»•i lá»‹ch",
-        getErrorMessage(e, "Vui lÃ²ng thá»­ láº¡i."),
+        "Không thể đổi lịch",
+        getErrorMessage(e, "Vui lòng thử lại."),
       );
     } finally {
       setSubmitting(false);
@@ -404,7 +408,7 @@ export default function RescheduleBookingScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        <Header title="Äá»•i lá»‹ch háº¹n" onBack={() => router.back()} />
+        <Header title="Đổi lịch hẹn" onBack={() => router.back()} />
 
         {loading ? (
           <View style={styles.centerState}>
@@ -412,14 +416,14 @@ export default function RescheduleBookingScreen() {
               size="large"
               color={LuxeColors.primaryContainer}
             />
-            <Text style={styles.centerText}>Äang táº£i...</Text>
+            <Text style={styles.centerText}>Đang tải...</Text>
           </View>
         ) : error ? (
           <View style={styles.centerState}>
             <Feather name="alert-circle" size={48} color={LuxeColors.outline} />
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity style={styles.retryBtn} onPress={loadInitialData}>
-              <Text style={styles.retryBtnText}>Thá»­ láº¡i</Text>
+              <Text style={styles.retryBtnText}>Thử lại</Text>
             </TouchableOpacity>
           </View>
         ) : booking ? (
@@ -432,7 +436,7 @@ export default function RescheduleBookingScreen() {
               <View style={styles.summaryCard}>
                 <View style={styles.summaryTop}>
                   <View>
-                    <Text style={styles.summaryLabel}>MÃ£ lá»‹ch háº¹n</Text>
+                    <Text style={styles.summaryLabel}>Mã lịch hẹn</Text>
                     <Text style={styles.summaryId}>#{booking.bookingId}</Text>
                   </View>
                   <View style={styles.plateBadge}>
@@ -475,7 +479,7 @@ export default function RescheduleBookingScreen() {
                 </View>
               ) : (
                 <>
-                  <Text style={styles.sectionTitle}>Chi nhÃ¡nh Ä‘Ã£ Ä‘áº·t</Text>
+                  <Text style={styles.sectionTitle}>Chi nhánh đã đặt</Text>
                   <View style={styles.branchList}>
                     {branches.map((branch) => {
                       const isSelected =
@@ -533,7 +537,7 @@ export default function RescheduleBookingScreen() {
                         size="small"
                         color={LuxeColors.primaryContainer}
                       />
-                      <Text style={styles.centerText}>Äang táº£i dá»‹ch vá»¥...</Text>
+                      <Text style={styles.centerText}>Đang tải dịch vụ...</Text>
                     </View>
                   )}
 
@@ -582,7 +586,7 @@ export default function RescheduleBookingScreen() {
                     serviceIds.length > 0 && (
                       <>
                         <View style={styles.calendarCard}>
-                          <Text style={styles.sectionTitle}>NgÃ y má»›i</Text>
+                          <Text style={styles.sectionTitle}>Ngày mới</Text>
                           <View style={styles.monthNav}>
                             <TouchableOpacity
                               style={styles.navBtn}
@@ -677,7 +681,7 @@ export default function RescheduleBookingScreen() {
                         {selectedDate && (
                           <View style={styles.slotsSection}>
                             <View style={styles.slotsHeader}>
-                              <Text style={styles.sectionTitle}>GiÃ¡Â»Â mÃ¡Â»â€ºi</Text>
+                              <Text style={styles.sectionTitle}>Giờ mới</Text>
                               <Text style={styles.selectedDateLabel}>
                                 {selectedDateDisplay}
                               </Text>
@@ -690,7 +694,7 @@ export default function RescheduleBookingScreen() {
                                   color={LuxeColors.primaryContainer}
                                 />
                                 <Text style={styles.centerText}>
-                                  Äang táº£i lá»‹ch trá»‘ng...
+                                  Đang tải lịch trống...
                                 </Text>
                               </View>
                             ) : slotError ? (
@@ -712,10 +716,10 @@ export default function RescheduleBookingScreen() {
                                   color={LuxeColors.outlineVariant}
                                 />
                                 <Text style={styles.emptySlotsTitle}>
-                                  KhÃ´ng cÃ³ lá»‹ch trá»‘ng
+                                  Không có lịch trống
                                 </Text>
                                 <Text style={styles.emptySlotsText}>
-                                  Vui lÃ²ng chá»n ngÃ y khÃ¡c.
+                                  Vui lòng chọn ngày khác.
                                 </Text>
                               </View>
                             ) : (
@@ -727,7 +731,7 @@ export default function RescheduleBookingScreen() {
                                       slots.filter((slot) => slot.isAvailable)
                                         .length
                                     }{" "}
-                                    khung giá» trá»‘ng
+                                    khung giờ trống
                                   </Text>
                                 </View>
 
@@ -791,7 +795,7 @@ export default function RescheduleBookingScreen() {
             </ScrollView>
 
             <BottomActionBar
-              title="XÃC NHáº¬N Äá»”I Lá»ŠCH"
+              title="XÁC NHẬN ĐỔI LỊCH"
               onPress={handleSubmit}
               loading={submitting}
               disabled={!canSubmit}

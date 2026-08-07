@@ -8,8 +8,10 @@ import { Feather } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+// Tên icon hợp lệ cho từng tab
 type IconName = "home" | "calendar" | "award" | "user";
 
+/** Icon của một tab: đổi màu khi được chọn và hiện chấm tròn bên dưới. */
 function TabIcon({ icon, focused }: { icon: IconName; focused: boolean }) {
   return (
     <View style={styles.iconContainer}>
@@ -25,6 +27,7 @@ function TabIcon({ icon, focused }: { icon: IconName; focused: boolean }) {
   );
 }
 
+/** Layout thanh tab dưới cùng gồm 4 tab: Trang chủ, Lịch hẹn, Phần thưởng, Cá nhân. */
 export default function MainTabsLayout() {
   return (
     <Tabs

@@ -13,10 +13,12 @@ import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { useFonts } from 'expo-font';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { OverloadSuggestionProvider } from '@/contexts/OverloadSuggestionContext';
 import { LuxeColors } from '@/constants/luxeTheme';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { ConfirmDialogProvider } from '@/components/ConfirmDialog';
 
+// Theme sáng tùy biến cho React Navigation, dùng bảng màu LuxeColors
 const LuxeLightTheme = {
   ...DefaultTheme,
   colors: {
@@ -30,6 +32,7 @@ const LuxeLightTheme = {
   },
 };
 
+/** Màn hình chờ hiển thị vòng xoay khi đang tải trạng thái đăng nhập. */
 function LoadingScreen() {
   return (
     <View style={styles.loading}>
@@ -47,11 +50,18 @@ const styles = StyleSheet.create({
   },
 });
 
+/**
+ * Layout gốc của ứng dụng.
+ * Nạp font, thiết lập theme và lồng các Provider (Auth, ConfirmDialog, OverloadSuggestion),
+ * rồi render splash và bộ điều hướng.
+ */
 export default function RootLayout() {
+  // Nạp font Feather cho bộ icon
   const [fontsLoaded] = useFonts({
     Feather: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
   });
 
+  // Chưa nạp xong font thì hiện vòng xoay chờ
   if (!fontsLoaded) {
     return (
       <SafeAreaProvider>
@@ -68,8 +78,10 @@ export default function RootLayout() {
         <StatusBar style="dark" />
         <AuthProvider>
           <ConfirmDialogProvider>
-            <AnimatedSplashOverlay />
-            <AppNavigator />
+            <OverloadSuggestionProvider>
+              <AnimatedSplashOverlay />
+              <AppNavigator />
+            </OverloadSuggestionProvider>
           </ConfirmDialogProvider>
         </AuthProvider>
       </ThemeProvider>
@@ -87,6 +99,7 @@ function InnerNavigator() {
   const pathname = usePathname();
   const containerRef = useNavigationContainerRef();
 
+  // Điều hướng theo trạng thái đăng nhập: chưa đăng nhập -> về /login; đã đăng nhập mà ở màn login/register -> vào (main)
   useEffect(() => {
     if (isLoading) return;
 
@@ -97,6 +110,7 @@ function InnerNavigator() {
     }
   }, [isLoading, isAuthenticated, pathname]);
 
+  // Nút back cứng của Android: nếu đang ở màn gốc thì quay về (main) thay vì thoát app
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       const state = containerRef.current?.getRootState();
@@ -109,6 +123,7 @@ function InnerNavigator() {
     return () => backHandler.remove();
   }, []);
 
+  // Chặn log lỗi nhiễu "GO_BACK was not handled" của navigator (không ảnh hưởng chức năng)
   useEffect(() => {
     const originalError = console.error;
     console.error = (...args: unknown[]) => {
@@ -164,6 +179,7 @@ function InnerNavigator() {
   );
 }
 
+/** Bọc InnerNavigator (điểm để mở rộng logic điều hướng cấp app nếu cần). */
 function AppNavigator() {
   return <InnerNavigator />;
 }

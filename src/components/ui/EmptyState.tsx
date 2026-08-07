@@ -8,15 +8,17 @@ import { Feather } from '@expo/vector-icons';
 import { LuxeColors, LuxeSpacing, LuxeBorderRadius } from '@/constants/luxeTheme';
 import { PrimaryButton } from './Button';
 
+/** Props của EmptyState */
 interface EmptyStateProps {
-  icon?: string;
+  icon?: string; // Tên icon Feather (mặc định "inbox")
   iconColor?: string;
   title: string;
   subtitle?: string;
-  actionTitle?: string;
-  onAction?: () => void;
+  actionTitle?: string; // Nhãn nút hành động (nếu có)
+  onAction?: () => void; // Xử lý khi bấm nút hành động
 }
 
+/** Trạng thái rỗng dùng chung: icon + tiêu đề + mô tả + nút hành động tuỳ chọn */
 export function EmptyState({ icon, iconColor = LuxeColors.outlineVariant, title, subtitle, actionTitle, onAction }: EmptyStateProps) {
   return (
     <View style={styles.container}>

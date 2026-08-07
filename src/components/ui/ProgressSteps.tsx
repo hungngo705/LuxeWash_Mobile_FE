@@ -7,24 +7,28 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { LuxeColors, LuxeSpacing } from '@/constants/luxeTheme';
 
+/** Một bước trong tiến trình */
 interface Step {
   label: string;
 }
 
+/** Props của ProgressSteps */
 interface ProgressStepsProps {
   steps: Step[];
   currentStep: number; // 0-indexed
   style?: object;
 }
 
+/** Thanh chỉ báo tiến trình nhiều bước (chấm tròn + nhãn + đường nối) cho luồng đặt lịch */
 export function ProgressSteps({ steps, currentStep, style }: ProgressStepsProps) {
   return (
     <View style={[styles.container, style]}>
       <View style={styles.stepsRow}>
         {steps.map((step, index) => {
-          const isCompleted = index < currentStep;
-          const isActive = index === currentStep;
-          const isPending = index > currentStep;
+          // Xác định trạng thái từng bước so với bước hiện tại
+          const isCompleted = index < currentStep; // Đã hoàn thành
+          const isActive = index === currentStep; // Đang ở bước này
+          const isPending = index > currentStep; // Chưa tới
 
           return (
             <React.Fragment key={index}>
