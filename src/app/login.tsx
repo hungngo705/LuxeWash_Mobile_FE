@@ -11,7 +11,7 @@ import {
 } from "@/constants/luxeTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { authService } from "@/services/api/authService";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -174,6 +174,14 @@ export default function LoginScreen() {
                   />
                 </TouchableOpacity>
               </View>
+            </View>
+
+            <View style={styles.forgotPasswordRow}>
+              <Link href="/forgot-password" asChild>
+                <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Text style={styles.forgotPasswordLink}>Quên mật khẩu?</Text>
+                </TouchableOpacity>
+              </Link>
             </View>
 
             {/* Login Button */}
@@ -365,6 +373,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 10,
     fontSize: 15,
+    fontWeight: "400",
+    letterSpacing: 0,
+    textAlign: "left",
     color: LuxeColors.onSurface,
   },
   eyeBtn: {
@@ -381,6 +392,16 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     marginTop: 8,
     ...LuxeShadows.primary,
+  },
+  forgotPasswordRow: {
+    alignItems: "flex-end",
+    marginTop: -4,
+    marginBottom: 4,
+  },
+  forgotPasswordLink: {
+    color: LuxeColors.primary,
+    fontSize: 13,
+    fontWeight: "700",
   },
   loginBtnDisabled: {
     opacity: 0.7,

@@ -103,9 +103,15 @@ function InnerNavigator() {
   useEffect(() => {
     if (isLoading) return;
 
-    if (!isAuthenticated && pathname !== '/login' && pathname !== '/register' && pathname !== '/verify-otp') {
+    const isPublicAuthRoute =
+      pathname === '/login' ||
+      pathname === '/register' ||
+      pathname === '/verify-otp' ||
+      pathname === '/forgot-password';
+
+    if (!isAuthenticated && !isPublicAuthRoute) {
       router.replace('/login');
-    } else if (isAuthenticated && (pathname === '/login' || pathname === '/register')) {
+    } else if (isAuthenticated && isPublicAuthRoute) {
       router.replace('/(main)' as any);
     }
   }, [isLoading, isAuthenticated, pathname]);
@@ -154,6 +160,7 @@ function InnerNavigator() {
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
       <Stack.Screen name="verify-otp" />
+      <Stack.Screen name="forgot-password" />
       <Stack.Screen name="change-password" />
       <Stack.Screen name="profile-edit" />
       <Stack.Screen name="(main)" />
