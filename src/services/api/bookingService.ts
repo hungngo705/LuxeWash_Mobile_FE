@@ -140,6 +140,8 @@ export interface BookingDetailResponse {
   pointDiscountAmount: number;
   voucherDiscountAmount: number;
   finalAmount: number;
+  checkInImageUrl?: string | null;
+  checkOutImageUrl?: string | null;
 }
 
 /** Phản hồi khi tạo booking thành công — chỉ trả về id */
@@ -189,13 +191,16 @@ export interface RescheduleBookingRequest {
 export interface MyBookingItem {
   bookingId: number;
   licensePlate: string;
-  serviceName: string;
+  serviceName?: string;
+  serviceNames?: string[];
   scheduledTime: string;
   status: string;
   originalPrice: number;
   pointDiscountAmount: number;
   voucherDiscountAmount: number;
   finalAmount: number;
+  checkInImageUrl?: string | null;
+  checkOutImageUrl?: string | null;
 }
 
 /** Bộ lọc khi lấy danh sách booking của khách */

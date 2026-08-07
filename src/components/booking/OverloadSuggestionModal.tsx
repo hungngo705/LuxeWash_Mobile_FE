@@ -102,7 +102,9 @@ export function OverloadSuggestionModal({
                 </View>
                 <View style={styles.infoRow}>
                   <Feather name="droplet" size={15} color={LuxeColors.onSurfaceVariant} />
-                  <Text style={styles.infoText}>{booking.serviceName}</Text>
+                  <Text style={styles.infoText}>
+                    {booking.serviceNames?.join(", ") || booking.serviceName || "Dịch vụ rửa xe"}
+                  </Text>
                 </View>
               </View>
             )}

@@ -17,7 +17,11 @@ import React, {
   useState,
 } from "react";
 import { authService, type UserProfile } from "../services/api/authService";
-import { ApiError, getStoredTokens, setSessionExpiredHandler } from "../services/api/client";
+import {
+  ApiError,
+  getStoredTokens,
+  setSessionExpiredHandler,
+} from "../services/api/client";
 import { vehicleService, type VehicleResponse } from "../services/api/vehicleService";
 import { walletService } from "../services/api/walletService";
 import { unregisterCurrentDevicePushToken } from "../services/pushNotificationService";
@@ -43,7 +47,6 @@ export interface AuthUser {
   phoneNumber: string;
   email?: string;
   name: string;
-  role: "customer" | "staff" | "admin"; // Vai trò tài khoản
   membershipId: string;
   membershipTier: "standard" | "silver" | "gold" | "platinum" | "diamond"; // Hạng thành viên
   loyaltyPoints: number; // Điểm tích luỹ
@@ -103,7 +106,6 @@ interface AuthContextType extends AuthState {
     userId: string,
     phoneNumber: string,
     fullName: string,
-    role: string,
   ) => Promise<void>;
 }
 
@@ -174,7 +176,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const profile = profileRes.data;
           const userId = String(profile.userId);
 
-          // Lấy loại xe + xe của tôi; dựng map tên loại xe -> id để bù trường thiếu
           const vehicleTypesRes = await vehicleService.getVehicleTypes();
           const vehiclesRes = await vehicleService.getMyVehicles();
           const vehicleTypeMap: Record<string, number> = {};
@@ -201,7 +202,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             phoneNumber: profile.phoneNumber,
             name: profile.fullName,
             email: profile.email ?? undefined,
-            role: "customer" as const,
             membershipId: profile.tierName?.toLowerCase() || "standard",
             membershipTier: (profile.tierName?.toLowerCase() ||
               "standard") as any,
@@ -303,10 +303,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: String(loginData.userId),
         phoneNumber: loginData.phoneNumber,
         name: loginData.fullName,
-        role: (loginData.role?.toLowerCase() || "customer") as
-          | "customer"
-          | "staff"
-          | "admin",
         membershipId: profile?.tierName?.toLowerCase() || "standard",
         membershipTier: (profile?.tierName?.toLowerCase() || "standard") as any,
         loyaltyPoints: profile?.totalPoint ?? 0,
@@ -432,7 +428,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userId: string,
     phoneNumber: string,
     fullName: string,
-    role: string,
   ): Promise<void> => {
     const { profile, walletBalance, vehicles } = await fetchProfileAndWallet(userId);
     const authUser: AuthUser = {
@@ -440,10 +435,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       phoneNumber: profile?.phoneNumber ?? phoneNumber,
       name: profile?.fullName ?? fullName,
       email: profile?.email ?? undefined,
-      role: (role?.toLowerCase() || "customer") as
-        | "customer"
-        | "staff"
-        | "admin",
       membershipId: profile?.tierName?.toLowerCase() || "standard",
       membershipTier: (profile?.tierName?.toLowerCase() || "standard") as any,
       loyaltyPoints: profile?.totalPoint ?? 0,

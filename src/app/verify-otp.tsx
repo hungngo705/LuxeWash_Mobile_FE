@@ -69,11 +69,11 @@ export default function VerifyOtpScreen() {
   // Bộ đếm ngược thời gian gửi lại mã (giảm mỗi giây)
   useEffect(() => {
     if (countdown <= 0) return;
-    const timer = setInterval(() => {
-      setCountdown(prev => prev - 1);
+    const timer = setTimeout(() => {
+      setCountdown(prev => Math.max(0, prev - 1));
     }, 1000);
-    return () => clearInterval(timer);
-  }, [countdown > 0]);
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   // Xử lý nhập/dán OTP: nếu dán nhiều chữ số thì điền lần lượt, ngược lại điền 1 ô và nhảy ô kế
   const handleOtpChange = (index: number, value: string) => {
@@ -143,7 +143,6 @@ export default function VerifyOtpScreen() {
         String(data.userId),
         data.phoneNumber,
         data.fullName,
-        data.role,
       );
 
       Alert.alert(

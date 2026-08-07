@@ -296,6 +296,50 @@ export default function BookingDetailScreen() {
                             ))}
                         </SectionCard>
 
+                        {(booking.status === "Completed" || booking.checkInImageUrl || booking.checkOutImageUrl) && (
+                            <SectionCard style={styles.mt10}>
+                                <SectionTitle icon="camera" title="Hình ảnh xe tại trạm" />
+                                <View style={styles.stationPhotoGrid}>
+                                    <View style={styles.stationPhotoItem}>
+                                        {booking.checkInImageUrl ? (
+                                            <Image
+                                                source={{ uri: booking.checkInImageUrl }}
+                                                style={styles.stationPhoto}
+                                                resizeMode="cover"
+                                            />
+                                        ) : (
+                                            <View style={[styles.stationPhoto, styles.stationPhotoMissing]}>
+                                                <Feather name="image" size={24} color={LuxeColors.outline} />
+                                                <Text style={styles.stationPhotoMissingText}>Không có ảnh</Text>
+                                            </View>
+                                        )}
+                                        <View style={styles.stationPhotoCaption}>
+                                            <Feather name="log-in" size={13} color={LuxeColors.primaryContainer} />
+                                            <Text style={styles.stationPhotoCaptionText}>Ảnh check-in</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.stationPhotoItem}>
+                                        {booking.checkOutImageUrl ? (
+                                            <Image
+                                                source={{ uri: booking.checkOutImageUrl }}
+                                                style={styles.stationPhoto}
+                                                resizeMode="cover"
+                                            />
+                                        ) : (
+                                            <View style={[styles.stationPhoto, styles.stationPhotoMissing]}>
+                                                <Feather name="image" size={24} color={LuxeColors.outline} />
+                                                <Text style={styles.stationPhotoMissingText}>Không có ảnh</Text>
+                                            </View>
+                                        )}
+                                        <View style={styles.stationPhotoCaption}>
+                                            <Feather name="log-out" size={13} color={LuxeColors.primaryContainer} />
+                                            <Text style={styles.stationPhotoCaptionText}>Ảnh check-out</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            </SectionCard>
+                        )}
+
                         {/* Payment Card */}
                         <SectionCard style={styles.mt10}>
                             <SectionTitle icon="credit-card" title="Chi tiết thanh toán" />
@@ -477,6 +521,42 @@ const styles = StyleSheet.create({
     serviceItem: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 7 },
     serviceCheckWrap: { width: 22, height: 22, alignItems: "center", justifyContent: "center" },
     serviceName: { fontSize: 14, fontWeight: "500", color: LuxeColors.onSurface },
+
+    // Station check-in/check-out photos
+    stationPhotoGrid: { flexDirection: "row", gap: 10 },
+    stationPhotoItem: {
+        flex: 1,
+        minWidth: 0,
+        borderRadius: LuxeBorderRadius.lg,
+        overflow: "hidden",
+        backgroundColor: LuxeColors.surfaceContainer,
+    },
+    stationPhoto: { width: "100%", aspectRatio: 4 / 3 },
+    stationPhotoMissing: {
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+        backgroundColor: LuxeColors.surfaceContainer,
+    },
+    stationPhotoMissingText: {
+        fontSize: 11,
+        fontWeight: "600",
+        color: LuxeColors.onSurfaceVariant,
+    },
+    stationPhotoCaption: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 9,
+        backgroundColor: LuxeColors.primaryContainer + "10",
+    },
+    stationPhotoCaptionText: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: LuxeColors.primaryContainer,
+    },
 
     // Payment
     totalSection: {

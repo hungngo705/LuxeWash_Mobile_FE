@@ -154,11 +154,11 @@ export function OverloadSuggestionProvider({ children }: { children: ReactNode }
 
   /**
    * Dò tất cả đề xuất cho các booking sắp tới của khách.
-   * Chỉ chạy cho tài khoản khách hàng. openFirst = true thì mở modal cho đề xuất đầu tiên tìm được.
+   * Chỉ chạy khi customer đã đăng nhập. openFirst = true thì mở modal cho đề xuất đầu tiên tìm được.
    */
   const discoverSuggestions = useCallback(
     async (providedBookings?: MyBookingItem[], openFirst = false) => {
-      if (!isAuthenticated || user?.role !== "customer") return;
+      if (!isAuthenticated) return;
 
       setIsDiscovering(true);
       try {
@@ -200,7 +200,7 @@ export function OverloadSuggestionProvider({ children }: { children: ReactNode }
         setIsDiscovering(false);
       }
     },
-    [fetchSuggestion, isAuthenticated, user?.role],
+    [fetchSuggestion, isAuthenticated],
   );
 
   // Mở modal đề xuất cho một booking cụ thể (khi khách bấm vào từ màn hình)
@@ -361,8 +361,8 @@ export function OverloadSuggestionProvider({ children }: { children: ReactNode }
 
   // Thiết lập khi khách đăng nhập: dò đề xuất, đăng ký push, và dò lại khi app trở lại foreground
   useEffect(() => {
-    // Chưa đăng nhập hoặc không phải khách -> xoá trạng thái và dừng
-    if (isAuthLoading || !isAuthenticated || user?.role !== "customer") {
+    // Chưa đăng nhập -> xoá trạng thái và dừng
+    if (isAuthLoading || !isAuthenticated) {
       setSuggestionsByBookingId({});
       setActiveSuggestion(null);
       return;
@@ -412,7 +412,6 @@ export function OverloadSuggestionProvider({ children }: { children: ReactNode }
     isAuthLoading,
     isAuthenticated,
     user?.id,
-    user?.role,
   ]);
 
   return (

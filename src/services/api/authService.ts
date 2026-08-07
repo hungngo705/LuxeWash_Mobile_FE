@@ -6,7 +6,22 @@
  * làm mới token, cập nhật hồ sơ và đăng xuất.
  */
 
-import { apiClient, ApiResponse, setTokens, clearTokens } from './client';
+import {
+  apiClient,
+  ApiError,
+  ApiResponse,
+  setTokens,
+  clearTokens,
+} from './client';
+
+const ensureCustomerAccount = (role: string | undefined) => {
+  if (role?.trim().toLowerCase() !== 'customer') {
+    throw new ApiError(
+      403,
+      'Ứng dụng LuxeWash Mobile chỉ dành cho tài khoản khách hàng.',
+    );
+  }
+};
 
 /** Dữ liệu gửi lên khi đăng ký tài khoản mới */
 export interface RegisterRequest {
@@ -41,13 +56,13 @@ export interface UserProfile {
   totalPoint: number; // Tổng điểm tích luỹ
   promotionPoint: number; // Điểm khuyến mãi
   churnScore: number; // Điểm dự đoán nguy cơ rời bỏ (dùng cho phân tích)
-  vehicles: Array<{
+  vehicles: {
     licensePlate: string;
     vehicleTypeId: number;
     vehicleType: string;
     registrationPhotoUrl: string | null;
     carModel: string | null;
-  }>; // Danh sách xe đã đăng ký của người dùng
+  }[]; // Danh sách xe đã đăng ký của người dùng
   dateOfBirth: string | null;
   email: string | null;
   status: string; // Trạng thái tài khoản (active, pending...)
@@ -108,6 +123,7 @@ export const authService = {
   login: async (data: LoginRequest): Promise<ApiResponse<LoginResponse>> => {
     const response = await apiClient.post<LoginResponse>('/auth/login', data);
     if (response.data?.token) {
+      ensureCustomerAccount(response.data.role);
       await setTokens(response.data.token, response.data.refreshToken);
     }
     return response;
@@ -142,6 +158,7 @@ export const authService = {
   verifyOtp: async (data: VerifyOtpRequest): Promise<ApiResponse<LoginResponse>> => {
     const response = await apiClient.post<LoginResponse>('/auth/verify-otp', data);
     if (response.data?.token) {
+      ensureCustomerAccount(response.data.role);
       await setTokens(response.data.token, response.data.refreshToken);
     }
     return response;

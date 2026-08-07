@@ -242,11 +242,19 @@ export default function AppointmentsScreen() {
     const date = item.scheduledTime ? formatDate(item.scheduledTime) : "";
     const time = item.scheduledTime ? formatTime(item.scheduledTime) : "";
     const vehiclePlate = item.licensePlate || "";
-    const serviceName = item.serviceName || "";
+    const serviceName = item.serviceNames?.join(", ") || item.serviceName || "";
     const userVehicle = user?.vehicles?.find(
       (v) => v.licensePlate === vehiclePlate,
     );
     const vehicleImage = userVehicle?.imageUrl;
+    const stationImages = [
+      item.checkInImageUrl
+        ? { key: "check-in", label: "Check-in", url: item.checkInImageUrl }
+        : null,
+      item.checkOutImageUrl
+        ? { key: "check-out", label: "Check-out", url: item.checkOutImageUrl }
+        : null,
+    ].filter((image): image is { key: string; label: string; url: string } => Boolean(image));
     const overloadSuggestion = suggestionsByBookingId[item.bookingId];
 
     return (
@@ -334,6 +342,29 @@ export default function AppointmentsScreen() {
               color={LuxeColors.outline}
             />
           </View>
+
+          {stationImages.length > 0 && (
+            <View style={styles.stationPhotosSection}>
+              <View style={styles.stationPhotosTitleRow}>
+                <Feather name="camera" size={13} color={LuxeColors.onSurfaceVariant} />
+                <Text style={styles.stationPhotosTitle}>Ảnh tại trạm</Text>
+              </View>
+              <View style={styles.stationPhotosRow}>
+                {stationImages.map((stationImage) => (
+                  <View key={stationImage.key} style={styles.stationPhotoWrap}>
+                    <Image
+                      source={{ uri: stationImage.url }}
+                      style={styles.stationPhoto}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.stationPhotoLabelWrap}>
+                      <Text style={styles.stationPhotoLabel}>{stationImage.label}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
           <View style={styles.cardDivider} />
 
@@ -836,6 +867,37 @@ const styles = StyleSheet.create({
     color: LuxeColors.primaryContainer,
     letterSpacing: 0.5,
   },
+  stationPhotosSection: { marginBottom: 14 },
+  stationPhotosTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
+  },
+  stationPhotosTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: LuxeColors.onSurfaceVariant,
+  },
+  stationPhotosRow: { flexDirection: "row", gap: 8 },
+  stationPhotoWrap: {
+    flex: 1,
+    height: 92,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: LuxeColors.surfaceContainer,
+  },
+  stationPhoto: { width: "100%", height: "100%" },
+  stationPhotoLabelWrap: {
+    position: "absolute",
+    left: 6,
+    bottom: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.62)",
+  },
+  stationPhotoLabel: { fontSize: 11, fontWeight: "700", color: "#ffffff" },
   cardDivider: {
     height: 1,
     backgroundColor: LuxeColors.outlineVariant + "25",
