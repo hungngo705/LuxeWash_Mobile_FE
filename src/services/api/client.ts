@@ -7,6 +7,7 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { fetch as expoFetch } from "expo/fetch";
 import { Platform } from "react-native";
 
 // Địa chỉ gốc của API backend và khoá lưu token trong bộ nhớ cục bộ
@@ -306,7 +307,7 @@ async function requestFormData<T>(
   let response: Response;
 
   try {
-    response = await fetch(`${BASE_URL}${endpoint}`, {
+    response = await expoFetch(`${BASE_URL}${endpoint}`, {
       method,
       headers,
       body: formData,
@@ -424,6 +425,9 @@ export const apiClient = {
   // POST với dữ liệu form-data (upload file)
   postForm: <T>(endpoint: string, formData: FormData) =>
     requestFormData<T>("POST", endpoint, formData),
+  // PUT với dữ liệu form-data (cập nhật kèm file)
+  putForm: <T>(endpoint: string, formData: FormData) =>
+    requestFormData<T>("PUT", endpoint, formData),
   // PUT với body JSON
   put: <T>(endpoint: string, body?: unknown) =>
     request<T>("PUT", endpoint, body),

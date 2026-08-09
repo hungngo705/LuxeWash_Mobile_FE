@@ -42,6 +42,14 @@ export interface RequestCarModelPayload {
   vehicleTypeId?: number | null;
 }
 
+export interface UpdateVehiclePayload {
+  vehicleTypeId: number;
+  carModelId?: number;
+  carModel?: string;
+  photoFile?: Blob;
+  userNote?: string;
+}
+
 export const vehicleService = {
   /** Lấy danh sách các loại phương tiện */
   getVehicleTypes: async (): Promise<ApiResponse<VehicleType[]>> => {
@@ -110,6 +118,31 @@ export const vehicleService = {
       formData.append('userNote', data.userNote);
     }
     return apiClient.postForm<void>('/vehicles', formData);
+  },
+
+  /** Cập nhật thông tin xe; biển số chỉ dùng để định danh và không thể thay đổi. */
+  updateVehicle: async (
+    licensePlate: string,
+    data: UpdateVehiclePayload,
+  ): Promise<ApiResponse<void>> => {
+    const formData = new FormData();
+    formData.append('vehicleTypeId', String(data.vehicleTypeId));
+    if (data.carModelId != null) {
+      formData.append('carModelId', String(data.carModelId));
+    } else if (data.carModel?.trim()) {
+      formData.append('carModel', data.carModel.trim());
+    }
+    if (data.photoFile) {
+      formData.append('PhotoFile', data.photoFile);
+    }
+    if (data.userNote?.trim()) {
+      formData.append('userNote', data.userNote.trim());
+    }
+
+    return apiClient.putForm<void>(
+      `/vehicles/${encodeURIComponent(licensePlate)}`,
+      formData,
+    );
   },
 
   /** Xoá xe theo biển số */

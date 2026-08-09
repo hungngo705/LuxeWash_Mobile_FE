@@ -16,6 +16,7 @@ export default function VehiclesLayout() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen name="add-vehicle" />
+      <Stack.Screen name="edit-vehicle" />
     </Stack>
   );
 }

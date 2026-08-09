@@ -56,6 +56,22 @@ export default function ProfileScreen() {
       onPress: () => router.push("/vouchers" as any),
     },
     {
+      icon: "activity",
+      iconColor: "#7C3AED",
+      bgColor: '#7C3AED18',
+      title: "Lịch sử điểm",
+      subtitle: "Theo dõi điểm đã cộng và sử dụng",
+      onPress: () => router.push("/points/history" as any),
+    },
+    {
+      icon: "message-circle",
+      iconColor: LuxeColors.primary,
+      bgColor: LuxeColors.primary + '18',
+      title: "Trợ lý LuxeWash",
+      subtitle: "Hỏi điểm, hạng và nhận gợi ý riêng",
+      onPress: () => router.push("/assistant" as any),
+    },
+    {
       icon: "lock",
       iconColor: "#2E7D32",
       bgColor: '#2E7D3220',

@@ -125,12 +125,29 @@ export default function VehiclesScreen() {
                           {vehicle.licensePlate}
                         </Text>
                       </View>
-                      <TouchableOpacity
-                        style={styles.deleteBtn}
-                        onPress={() => handleDeleteVehicle(vehicle)}
-                      >
-                        <Feather name="trash-2" size={18} color="#ef4444" />
-                      </TouchableOpacity>
+                      <View style={styles.vehicleActions}>
+                        <TouchableOpacity
+                          style={styles.editBtn}
+                          onPress={() =>
+                            router.push({
+                              pathname: "/vehicles/edit-vehicle",
+                              params: { licensePlate: vehicle.licensePlate },
+                            })
+                          }
+                          accessibilityRole="button"
+                          accessibilityLabel={`Sửa thông tin xe ${vehicle.licensePlate}`}
+                        >
+                          <Feather name="edit-2" size={17} color={LuxeColors.primaryContainer} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.deleteBtn}
+                          onPress={() => handleDeleteVehicle(vehicle)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Xóa xe ${vehicle.licensePlate}`}
+                        >
+                          <Feather name="trash-2" size={18} color="#ef4444" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                   <Text style={styles.vehicleCarModel}>
@@ -269,6 +286,12 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#ffffff",
     letterSpacing: 0.5,
+  },
+  vehicleActions: { flexDirection: "row", alignItems: "center", gap: 4 },
+  editBtn: {
+    padding: 7,
+    borderRadius: 10,
+    backgroundColor: LuxeColors.primaryContainer + "12",
   },
   deleteBtn: { padding: 4 },
   vehicleCarModel: {

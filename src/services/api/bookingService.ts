@@ -129,9 +129,28 @@ export interface BookingDetail {
   vehicles: BookingDetailVehicle[];
 }
 
+/** Đề xuất chuyển booking sang chi nhánh khác khi chi nhánh hiện tại quá tải. */
+export interface BookingRelocationProposal {
+  bookingId: number;
+  licensePlate: string;
+  serviceNames: string[];
+  scheduledTime: string;
+  originalBranchId: number;
+  originalBranchName: string;
+  alternativeBranchId: number;
+  alternativeBranchName: string;
+  alternativeBranchAddress: string;
+  alternativeBranchDistanceKm: number;
+  voucherCode: string;
+  voucherDiscountAmount: number;
+  proposalExpiresAt: string;
+}
+
 /** Phản hồi rút gọn của chi tiết booking (dạng tổng hợp một dòng) */
 export interface BookingDetailResponse {
   bookingId: number;
+  branchId: number;
+  branchName: string;
   licensePlate: string;
   serviceNames: string[];
   scheduledTime: string;
@@ -140,6 +159,20 @@ export interface BookingDetailResponse {
   pointDiscountAmount: number;
   voucherDiscountAmount: number;
   finalAmount: number;
+  paymentStatus?: BookingPaymentStatus | null;
+  paymentMethod?: string | null;
+  paymentOrderCode?: string | null;
+  paidAt?: string | null;
+  processingStartTime?: string | null;
+  completedTime?: string | null;
+  actualDurationMinutes?: number | null;
+  processingLaneId?: number | null;
+  processingLaneName?: string | null;
+  isWaitingForLane?: boolean;
+  hasPendingRelocation?: boolean;
+  relocation?: BookingRelocationProposal | null;
+  isWaitAccepted?: boolean;
+  hasPendingOverloadSuggestion?: boolean;
   checkInImageUrl?: string | null;
   checkOutImageUrl?: string | null;
 }
@@ -179,6 +212,8 @@ export interface BookingPaymentStatusResponse {
   orderCode: string | null;
   amount: number | null;
   paidAt: string | null; // Thời điểm thanh toán thành công
+  processingLaneId?: number | null;
+  processingLaneName?: string | null;
 }
 
 /** Body dời lịch: ngày và khung giờ mới */
@@ -190,6 +225,8 @@ export interface RescheduleBookingRequest {
 /** Một mục trong danh sách booking của khách (màn hình "Lịch của tôi") */
 export interface MyBookingItem {
   bookingId: number;
+  branchId?: number;
+  branchName?: string;
   licensePlate: string;
   serviceName?: string;
   serviceNames?: string[];
@@ -199,6 +236,18 @@ export interface MyBookingItem {
   pointDiscountAmount: number;
   voucherDiscountAmount: number;
   finalAmount: number;
+  paymentStatus?: BookingPaymentStatus | null;
+  paymentMethod?: string | null;
+  processingStartTime?: string | null;
+  completedTime?: string | null;
+  actualDurationMinutes?: number | null;
+  processingLaneId?: number | null;
+  processingLaneName?: string | null;
+  isWaitingForLane?: boolean;
+  isWaitAccepted?: boolean;
+  hasPendingRelocation?: boolean;
+  relocation?: BookingRelocationProposal | null;
+  hasPendingOverloadSuggestion?: boolean;
   checkInImageUrl?: string | null;
   checkOutImageUrl?: string | null;
 }

@@ -268,11 +268,16 @@ export default function HomeScreen() {
                 </View>
                 <Text style={styles.quickActionLabel}>Hỗ trợ</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.quickActionItem}>
+              <TouchableOpacity
+                style={styles.quickActionItem}
+                onPress={() => router.push('/assistant' as any)}
+                accessibilityRole="button"
+                accessibilityLabel="Mở Trợ lý LuxeWash"
+              >
                 <View style={[styles.quickActionIcon, { backgroundColor: '#F3E5F520' }]}>
-                  <Feather name="book-open" size={20} color="#7B1FA2" />
+                  <Feather name="message-circle" size={20} color="#7B1FA2" />
                 </View>
-                <Text style={styles.quickActionLabel}>Hướng dẫn</Text>
+                <Text style={styles.quickActionLabel}>Trợ lý AI</Text>
               </TouchableOpacity>
             </View>
           </View>

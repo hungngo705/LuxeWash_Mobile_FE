@@ -103,6 +103,13 @@ export default function RewardsScreen() {
           <View style={styles.pointsCard}>
             <View style={styles.pointsHeader}>
               <Text style={styles.pointsLabel}>Số dư hiện tại</Text>
+              <TouchableOpacity
+                style={styles.historyButton}
+                onPress={() => router.push("/points/history" as RelativePathString)}
+              >
+                <Feather name="clock" size={14} color={LuxeColors.primary} />
+                <Text style={styles.historyButtonText}>Lịch sử</Text>
+              </TouchableOpacity>
             </View>
             <View style={styles.pointsDisplay}>
               <Text style={styles.pointsValue}>
@@ -265,6 +272,10 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   pointsHeader: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: LuxeSpacing.sm,
   },
   pointsLabel: {
@@ -273,6 +284,20 @@ const styles = StyleSheet.create({
     color: LuxeColors.onSurfaceVariant,
     textTransform: "uppercase",
     letterSpacing: 2,
+  },
+  historyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: LuxeBorderRadius.full,
+    backgroundColor: LuxeColors.primaryContainer + "18",
+  },
+  historyButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: LuxeColors.primary,
   },
   pointsDisplay: {
     flexDirection: "row",

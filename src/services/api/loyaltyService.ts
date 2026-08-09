@@ -17,6 +17,15 @@ export interface Tier {
   bookingWindowDays?: number; // Số ngày được đặt lịch trước
 }
 
+/** Một giao dịch cộng hoặc trừ điểm trong sổ điểm của khách hàng. */
+export interface PointHistoryItem {
+  ledgerId: number;
+  pointsAdded: number;
+  pointsDeducted: number;
+  reason: string;
+  transactionDate: string;
+}
+
 /** Loại chiến dịch phát voucher (0: thủ công, 1: sinh nhật, ...) */
 export type VoucherCampaignType = 0 | 1 | 2 | 3 | 4 | 5;
 
@@ -78,6 +87,11 @@ export const loyaltyService = {
   /** Lấy danh sách các hạng thành viên */
   getTiers: async (): Promise<ApiResponse<Tier[]>> => {
     return apiClient.get<Tier[]>('/tiers');
+  },
+
+  /** Lấy toàn bộ lịch sử cộng/trừ điểm của người dùng hiện tại. */
+  getPointsHistory: async (): Promise<ApiResponse<PointHistoryItem[]>> => {
+    return apiClient.get<PointHistoryItem[]>('/points/history');
   },
 
   /** Lấy danh sách voucher người dùng đang sở hữu */
