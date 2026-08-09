@@ -163,6 +163,8 @@ function InnerNavigator() {
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="change-password" />
       <Stack.Screen name="profile-edit" />
+      <Stack.Screen name="points" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="assistant" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="(main)" />
       <Stack.Screen
         name="booking"

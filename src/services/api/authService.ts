@@ -12,6 +12,7 @@ import {
   ApiResponse,
   setTokens,
   clearTokens,
+  getStoredTokens,
 } from './client';
 
 const ensureCustomerAccount = (role: string | undefined) => {
@@ -151,9 +152,18 @@ export const authService = {
     return apiClient.post<RefreshTokenResponse>('/auth/refresh-token', data);
   },
 
-  /** Đăng xuất: xoá token khỏi bộ nhớ cục bộ */
-  logout: async () => {
-    await clearTokens();
+  /** Đăng xuất trên server rồi luôn xoá phiên cục bộ, kể cả khi mất mạng. */
+  logout: async (): Promise<void> => {
+    try {
+      const { accessToken } = await getStoredTokens();
+      if (accessToken) {
+        await apiClient.post<void>('/auth/logout');
+      }
+    } catch {
+      // Người dùng vẫn phải đăng xuất được trên thiết bị khi server không khả dụng.
+    } finally {
+      await clearTokens();
+    }
   },
 
   /** Đổi mật khẩu tài khoản */

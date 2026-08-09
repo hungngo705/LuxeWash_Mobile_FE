@@ -13,6 +13,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import {
     ApiError,
+    branchService,
     bookingService,
     type BookingDetailResponse,
 } from "@/services/api";
@@ -21,6 +22,11 @@ import {
     formatTime,
     formatVnd,
 } from "@/utils/format";
+import {
+    isPendingBookingPayment,
+    isRetryableBookingPayment,
+    PAYMENT_STATUS_LABEL,
+} from "@/utils/bookingPayment";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -81,6 +87,23 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
     return fallback;
 };
 
+const getPaymentMethodLabel = (paymentMethod?: string | null) => {
+    switch (paymentMethod?.trim().toLowerCase()) {
+        case "wallet":
+            return "Ví LuxeWash";
+        case "payos":
+        case "qr":
+        case "bank":
+            return "PayOS / Chuyển khoản";
+        case "cash":
+            return "Tiền mặt";
+        default:
+            return paymentMethod?.trim() || null;
+    }
+};
+
+const formatDateTime = (value: string) => `${formatDate(value)} · ${formatTime(value)}`;
+
 export default function BookingDetailScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -91,15 +114,74 @@ export default function BookingDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [cancelling, setCancelling] = useState(false);
+    const [branchAddress, setBranchAddress] = useState<string | null>(null);
 
     const loadBooking = useCallback(async () => {
         if (!id) return;
         try {
             setLoading(true);
             setError(null);
-            const res = await bookingService.getBookingDetail(Number(id));
+            setBranchAddress(null);
+            const bookingId = Number(id);
+            const [res, paymentResponse, bookingsResponse, branchesResponse] = await Promise.all([
+                bookingService.getBookingDetail(bookingId),
+                bookingService.getPaymentStatus(bookingId).catch(() => null),
+                bookingService.getMyBookings().catch(() => null),
+                branchService.getBranches().catch(() => null),
+            ]);
             if (res.statusCode === 200 && res.data) {
-                setBooking(res.data);
+                let nextBooking = res.data;
+                const listedBooking = bookingsResponse?.data?.find(
+                    (item) => item.bookingId === bookingId,
+                );
+                const resolvedBranchId = nextBooking.branchId || listedBooking?.branchId || 0;
+                const matchedBranch = branchesResponse?.data?.find(
+                    (branch) => branch.branchId === resolvedBranchId,
+                );
+
+                nextBooking = {
+                    ...nextBooking,
+                    branchId: resolvedBranchId,
+                    branchName:
+                        nextBooking.branchName?.trim() ||
+                        listedBooking?.branchName?.trim() ||
+                        matchedBranch?.name?.trim() ||
+                        "",
+                    processingStartTime:
+                        nextBooking.processingStartTime ?? listedBooking?.processingStartTime,
+                    completedTime: nextBooking.completedTime ?? listedBooking?.completedTime,
+                    actualDurationMinutes:
+                        nextBooking.actualDurationMinutes ?? listedBooking?.actualDurationMinutes,
+                    processingLaneId:
+                        nextBooking.processingLaneId ?? listedBooking?.processingLaneId,
+                    processingLaneName:
+                        nextBooking.processingLaneName ?? listedBooking?.processingLaneName,
+                    isWaitingForLane:
+                        nextBooking.isWaitingForLane ?? listedBooking?.isWaitingForLane,
+                    isWaitAccepted: nextBooking.isWaitAccepted ?? listedBooking?.isWaitAccepted,
+                    hasPendingRelocation:
+                        nextBooking.hasPendingRelocation ?? listedBooking?.hasPendingRelocation,
+                    relocation: nextBooking.relocation ?? listedBooking?.relocation,
+                    hasPendingOverloadSuggestion:
+                        nextBooking.hasPendingOverloadSuggestion ??
+                        listedBooking?.hasPendingOverloadSuggestion,
+                };
+
+                if (paymentResponse?.data?.paymentStatus) {
+                    nextBooking = {
+                        ...nextBooking,
+                        paymentStatus: paymentResponse.data.paymentStatus,
+                        paymentMethod: paymentResponse.data.paymentMethod ?? nextBooking.paymentMethod,
+                        paymentOrderCode: paymentResponse.data.orderCode,
+                        paidAt: paymentResponse.data.paidAt,
+                        processingLaneId:
+                            nextBooking.processingLaneId ?? paymentResponse.data.processingLaneId,
+                        processingLaneName:
+                            nextBooking.processingLaneName ?? paymentResponse.data.processingLaneName,
+                    };
+                }
+                setBranchAddress(matchedBranch?.address?.trim() || null);
+                setBooking(nextBooking);
             } else {
                 setError("Không tìm thấy lịch hẹn.");
             }
@@ -173,11 +255,37 @@ export default function BookingDetailScreen() {
 
     const scheduledDate = booking?.scheduledTime ? formatDate(booking.scheduledTime) : null;
     const scheduledTime = booking?.scheduledTime ? formatTime(booking.scheduledTime) : null;
+    const requiresPayment = booking
+        ? isRetryableBookingPayment(booking.paymentStatus, booking.finalAmount, booking.status)
+        : false;
+    const paymentPending = booking
+        ? isPendingBookingPayment(booking.paymentStatus, booking.finalAmount)
+        : false;
+    const hasOperationalDetails = Boolean(
+        booking?.processingStartTime ||
+        booking?.completedTime ||
+        booking?.actualDurationMinutes ||
+        booking?.processingLaneId ||
+        booking?.processingLaneName ||
+        booking?.isWaitingForLane ||
+        booking?.isWaitAccepted,
+    );
+    const paymentMethodLabel = getPaymentMethodLabel(booking?.paymentMethod);
+    const processingLaneLabel = booking?.processingLaneName ||
+        (booking?.processingLaneId ? `Làn #${booking.processingLaneId}` : null);
 
     const handleReschedule = () => {
         if (!booking) return;
         router.push({
             pathname: "/booking/reschedule",
+            params: { bookingId: String(booking.bookingId) },
+        });
+    };
+
+    const handleOpenPayment = () => {
+        if (!booking) return;
+        router.push({
+            pathname: "/booking/payment",
             params: { bookingId: String(booking.bookingId) },
         });
     };
@@ -257,6 +365,77 @@ export default function BookingDetailScreen() {
                             </View>
                         )}
 
+                        {/* Branch Card */}
+                        <SectionCard style={styles.mt10}>
+                            <SectionTitle icon="map-pin" title="Chi nhánh" />
+                            <View style={styles.branchRow}>
+                                <View style={styles.branchIconWrap}>
+                                    <Feather name="map-pin" size={22} color={LuxeColors.primaryContainer} />
+                                </View>
+                                <View style={styles.branchInfo}>
+                                    <Text style={styles.branchName}>
+                                        {booking.branchName ||
+                                            (booking.branchId > 0
+                                                ? `Chi nhánh #${booking.branchId}`
+                                                : "Chưa có thông tin chi nhánh")}
+                                    </Text>
+                                    {branchAddress && (
+                                        <Text style={styles.branchAddress}>{branchAddress}</Text>
+                                    )}
+                                </View>
+                            </View>
+                        </SectionCard>
+
+                        {booking.hasPendingRelocation && booking.relocation && (
+                            <View style={styles.relocationCard}>
+                                <View style={styles.relocationIconWrap}>
+                                    <Feather name="navigation" size={20} color="#B45309" />
+                                </View>
+                                <View style={styles.relocationContent}>
+                                    <Text style={styles.relocationTitle}>Đề xuất chuyển chi nhánh</Text>
+                                    <Text style={styles.relocationText}>
+                                        {booking.relocation.originalBranchName} → {booking.relocation.alternativeBranchName}
+                                    </Text>
+                                    {!!booking.relocation.alternativeBranchAddress && (
+                                        <Text style={styles.relocationMeta}>
+                                            {booking.relocation.alternativeBranchAddress}
+                                        </Text>
+                                    )}
+                                    {booking.relocation.alternativeBranchDistanceKm > 0 && (
+                                        <Text style={styles.relocationMeta}>
+                                            Khoảng cách: {booking.relocation.alternativeBranchDistanceKm.toFixed(1)} km
+                                        </Text>
+                                    )}
+                                    {!!booking.relocation.voucherCode && (
+                                        <Text style={styles.relocationMeta}>
+                                            Voucher hỗ trợ: {booking.relocation.voucherCode}
+                                            {booking.relocation.voucherDiscountAmount > 0
+                                                ? ` (-${formatVnd(booking.relocation.voucherDiscountAmount)})`
+                                                : ""}
+                                        </Text>
+                                    )}
+                                    <Text style={styles.relocationMeta}>
+                                        Hết hạn: {formatDateTime(booking.relocation.proposalExpiresAt)}
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+
+                        {booking.hasPendingOverloadSuggestion && !booking.hasPendingRelocation && (
+                            <View style={styles.relocationCard}>
+                                <View style={styles.relocationIconWrap}>
+                                    <Feather name="alert-triangle" size={20} color="#B45309" />
+                                </View>
+                                <View style={styles.relocationContent}>
+                                    <Text style={styles.relocationTitle}>Đề xuất xử lý quá tải</Text>
+                                    <Text style={styles.relocationText}>
+                                        Chi nhánh đang có đề xuất điều chỉnh cho lịch hẹn này.
+                                        Vui lòng quay lại danh sách lịch hẹn để phản hồi.
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+
                         {/* Vehicle Card */}
                         <SectionCard style={styles.mt10}>
                             <SectionTitle icon="truck" title="Xe" />
@@ -295,6 +474,40 @@ export default function BookingDetailScreen() {
                                 </View>
                             ))}
                         </SectionCard>
+
+                        {hasOperationalDetails && (
+                            <SectionCard style={styles.mt10}>
+                                <SectionTitle icon="activity" title="Tiến trình dịch vụ" />
+                                {booking.isWaitingForLane && (
+                                    <InfoRow label="Trạng thái làn" value="Đang chờ phân làn" />
+                                )}
+                                {booking.isWaitAccepted && (
+                                    <InfoRow label="Yêu cầu chờ" value="Đã chấp nhận" />
+                                )}
+                                {processingLaneLabel && (
+                                    <InfoRow label="Làn xử lý" value={processingLaneLabel} />
+                                )}
+                                {booking.processingStartTime && (
+                                    <InfoRow
+                                        label="Bắt đầu xử lý"
+                                        value={formatDateTime(booking.processingStartTime)}
+                                    />
+                                )}
+                                {booking.completedTime && (
+                                    <InfoRow
+                                        label="Hoàn thành"
+                                        value={formatDateTime(booking.completedTime)}
+                                    />
+                                )}
+                                {!!booking.actualDurationMinutes && (
+                                    <InfoRow
+                                        label="Thời lượng thực tế"
+                                        value={`${booking.actualDurationMinutes} phút`}
+                                        last
+                                    />
+                                )}
+                            </SectionCard>
+                        )}
 
                         {(booking.status === "Completed" || booking.checkInImageUrl || booking.checkOutImageUrl) && (
                             <SectionCard style={styles.mt10}>
@@ -371,6 +584,72 @@ export default function BookingDetailScreen() {
                                 <Text style={styles.totalLabel}>Thành tiền</Text>
                                 <Text style={styles.totalValue}>{formatVnd(booking.finalAmount || 0)}</Text>
                             </View>
+                            {paymentMethodLabel && (
+                                <InfoRow label="Phương thức" value={paymentMethodLabel} />
+                            )}
+                            {booking.paymentOrderCode && (
+                                <InfoRow label="Mã giao dịch" value={booking.paymentOrderCode} />
+                            )}
+                            {booking.paidAt && (
+                                <InfoRow label="Thanh toán lúc" value={formatDateTime(booking.paidAt)} />
+                            )}
+                            {booking.paymentStatus && (
+                                <View style={styles.paymentStatusRow}>
+                                    <Text style={styles.paymentStatusLabel}>Trạng thái</Text>
+                                    <View
+                                        style={[
+                                            styles.paymentStatusBadge,
+                                            booking.paymentStatus === "Completed"
+                                                ? styles.paymentStatusCompleted
+                                                : booking.paymentStatus === "Pending"
+                                                    ? styles.paymentStatusPending
+                                                    : styles.paymentStatusUnpaid,
+                                        ]}
+                                    >
+                                        <Feather
+                                            name={booking.paymentStatus === "Completed" ? "check-circle" : "credit-card"}
+                                            size={14}
+                                            color={
+                                                booking.paymentStatus === "Completed"
+                                                    ? "#15803D"
+                                                    : booking.paymentStatus === "Pending"
+                                                        ? "#B45309"
+                                                        : "#C2410C"
+                                            }
+                                        />
+                                        <Text
+                                            style={[
+                                                styles.paymentStatusText,
+                                                booking.paymentStatus === "Completed"
+                                                    ? styles.paymentStatusTextCompleted
+                                                    : booking.paymentStatus === "Pending"
+                                                        ? styles.paymentStatusTextPending
+                                                        : styles.paymentStatusTextUnpaid,
+                                            ]}
+                                        >
+                                            {PAYMENT_STATUS_LABEL[booking.paymentStatus]}
+                                        </Text>
+                                    </View>
+                                </View>
+                            )}
+                            {(requiresPayment || paymentPending) && (
+                                <TouchableOpacity
+                                    style={styles.paymentButton}
+                                    onPress={handleOpenPayment}
+                                    activeOpacity={0.8}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Thanh toán lại lịch hẹn qua PayOS"
+                                >
+                                    <Feather
+                                        name="credit-card"
+                                        size={18}
+                                        color="#ffffff"
+                                    />
+                                    <Text style={styles.paymentButtonText}>
+                                        {paymentPending ? "Thanh toán lại" : "Thanh toán ngay"}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
                         </SectionCard>
 
                         <View style={styles.bottomSpacer} />
@@ -501,6 +780,47 @@ const styles = StyleSheet.create({
     infoValue: { fontSize: 14, fontWeight: "600", color: LuxeColors.onSurface },
     discountValue: { fontSize: 14, fontWeight: "600", color: "#16a34a" },
 
+    // Branch and relocation
+    branchRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+    branchIconWrap: {
+        width: 52,
+        height: 52,
+        borderRadius: LuxeBorderRadius.lg,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: LuxeColors.primaryContainer + "18",
+    },
+    branchInfo: { flex: 1 },
+    branchName: { fontSize: 16, fontWeight: "800", color: LuxeColors.onSurface },
+    branchAddress: {
+        marginTop: 4,
+        fontSize: 13,
+        lineHeight: 19,
+        color: LuxeColors.onSurfaceVariant,
+    },
+    relocationCard: {
+        flexDirection: "row",
+        gap: 12,
+        marginTop: 10,
+        padding: 16,
+        borderRadius: LuxeBorderRadius.xl,
+        borderWidth: 1,
+        borderColor: "#FCD34D",
+        backgroundColor: "#FFFBEB",
+    },
+    relocationIconWrap: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FEF3C7",
+    },
+    relocationContent: { flex: 1 },
+    relocationTitle: { fontSize: 14, fontWeight: "800", color: "#92400E" },
+    relocationText: { marginTop: 4, fontSize: 13, fontWeight: "700", color: "#B45309" },
+    relocationMeta: { marginTop: 3, fontSize: 12, lineHeight: 17, color: "#92400E" },
+
     // Vehicle
     vehicleRow: { flexDirection: "row", alignItems: "center", gap: 14 },
     vehicleImage: {
@@ -570,6 +890,42 @@ const styles = StyleSheet.create({
     },
     totalLabel: { fontSize: 16, fontWeight: "700", color: LuxeColors.onSurface },
     totalValue: { fontSize: 20, fontWeight: "800", color: LuxeColors.primary },
+    paymentStatusRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginTop: 14,
+        paddingTop: 14,
+        borderTopWidth: 1,
+        borderTopColor: LuxeColors.outlineVariant + "30",
+    },
+    paymentStatusLabel: { fontSize: 14, color: LuxeColors.onSurfaceVariant },
+    paymentStatusBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 16,
+    },
+    paymentStatusCompleted: { backgroundColor: "#DCFCE7" },
+    paymentStatusPending: { backgroundColor: "#FEF3C7" },
+    paymentStatusUnpaid: { backgroundColor: "#FFEDD5" },
+    paymentStatusText: { fontSize: 12, fontWeight: "700" },
+    paymentStatusTextCompleted: { color: "#15803D" },
+    paymentStatusTextPending: { color: "#B45309" },
+    paymentStatusTextUnpaid: { color: "#C2410C" },
+    paymentButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        marginTop: 14,
+        paddingVertical: 13,
+        borderRadius: LuxeBorderRadius.lg,
+        backgroundColor: "#C2410C",
+    },
+    paymentButtonText: { fontSize: 14, fontWeight: "800", color: "#ffffff" },
 
     // Bottom bar
     bottomBar: {

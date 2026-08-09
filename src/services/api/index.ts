@@ -15,7 +15,7 @@ export type {
 // Service & kiểu dữ liệu đặt lịch (dịch vụ, slot, thanh toán, dời chi nhánh khi quá tải)
 export { bookingService } from "./bookingService";
 export type {
-    BookingDetail, BookingDetailResponse, BookingDetailVehicle, BookingRequest,
+    BookingDetail, BookingDetailResponse, BookingDetailVehicle, BookingRelocationProposal, BookingRequest,
     BookingPaymentLinkRequest, BookingPaymentLinkResponse, BookingPaymentStatus,
     BookingPaymentStatusResponse,
     HandleOverloadSuggestionRequest, HandleOverloadSuggestionResponse,
@@ -37,15 +37,26 @@ export {
 // Service & kiểu dữ liệu khách hàng thân thiết (hạng, voucher)
 export { loyaltyService } from "./loyaltyService";
 export {
+    PointHistoryItem,
     Tier,
     Voucher,
     VoucherCampaignType,
     VoucherType,
     CAMPAIGN_BADGE_CONFIG,
 } from "./loyaltyService";
+// Trợ lý AI dành riêng cho khách hàng
+export { aiService } from "./aiService";
+export type {
+    AIChatRequest, AIChatResponse, AIRecommendationResponse
+} from "./aiService";
 // Service & kiểu dữ liệu phương tiện (loại xe, mẫu xe, xe của tôi)
 export { vehicleService } from "./vehicleService";
-export type { CarModel, RequestCarModelPayload, VehicleResponse } from "./vehicleService";
+export type {
+    CarModel,
+    RequestCarModelPayload,
+    UpdateVehiclePayload,
+    VehicleResponse,
+} from "./vehicleService";
 // Service & kiểu dữ liệu ví (số dư, nạp tiền, giao dịch)
 export { walletService } from "./walletService";
 export type {

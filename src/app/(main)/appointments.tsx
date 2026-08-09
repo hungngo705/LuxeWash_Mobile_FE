@@ -11,6 +11,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOverloadSuggestions } from "@/contexts/OverloadSuggestionContext";
 import { bookingService, type MyBookingItem } from "@/services/api";
 import {
+    isPendingBookingPayment,
+    isRetryableBookingPayment,
+    PAYMENT_STATUS_LABEL,
+} from "@/utils/bookingPayment";
+import {
     formatDate,
     formatTime,
     formatVnd,
@@ -54,6 +59,14 @@ const STATUS_LABEL: Record<string, string> = {
   pending: "Đang chờ",
   cancelled: "Đã hủy",
 };
+
+const PAYMENT_RELEVANT_BOOKING_STATUSES = new Set([
+  "Pending",
+  "Confirmed",
+  "CheckedIn",
+  "Processing",
+  "Delayed",
+]);
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -112,7 +125,33 @@ export default function AppointmentsScreen() {
     try {
       const res = await bookingService.getMyBookings();
       if (res.statusCode === 200 && res.data) {
-        const nextBookings = Array.isArray(res.data) ? res.data : [];
+        const rawBookings = Array.isArray(res.data) ? res.data : [];
+        const nextBookings = await Promise.all(
+          rawBookings.map(async (booking) => {
+            if (
+              booking.paymentStatus ||
+              booking.finalAmount <= 0 ||
+              !PAYMENT_RELEVANT_BOOKING_STATUSES.has(booking.status)
+            ) {
+              return booking;
+            }
+
+            try {
+              const paymentResponse = await bookingService.getPaymentStatus(
+                booking.bookingId,
+              );
+              return paymentResponse.data?.paymentStatus
+                ? {
+                    ...booking,
+                    paymentStatus: paymentResponse.data.paymentStatus,
+                    paymentMethod: paymentResponse.data.paymentMethod,
+                  }
+                : booking;
+            } catch {
+              return booking;
+            }
+          }),
+        );
         setBookings(nextBookings);
         void discoverSuggestions(nextBookings);
       } else {
@@ -256,6 +295,18 @@ export default function AppointmentsScreen() {
         : null,
     ].filter((image): image is { key: string; label: string; url: string } => Boolean(image));
     const overloadSuggestion = suggestionsByBookingId[item.bookingId];
+    const requiresPayment = isRetryableBookingPayment(
+      item.paymentStatus,
+      item.finalAmount,
+      item.status,
+    );
+    const paymentPending = isPendingBookingPayment(
+      item.paymentStatus,
+      item.finalAmount,
+    );
+    const paymentStatusLabel = item.paymentStatus
+      ? PAYMENT_STATUS_LABEL[item.paymentStatus]
+      : "Thanh toán lịch hẹn";
 
     return (
       <TouchableOpacity
@@ -285,6 +336,40 @@ export default function AppointmentsScreen() {
                 </Text>
               </View>
               <Feather name="chevron-right" size={18} color="#DC2626" />
+            </TouchableOpacity>
+          )}
+          {(requiresPayment || paymentPending) && (
+            <TouchableOpacity
+              style={styles.paymentBanner}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={`${paymentStatusLabel}. Mở thanh toán lịch hẹn ${item.bookingId}`}
+              onPress={(event) => {
+                event.stopPropagation();
+                router.push({
+                  pathname: "/booking/payment",
+                  params: { bookingId: String(item.bookingId) },
+                });
+              }}
+            >
+              <View style={styles.paymentBannerIcon}>
+                <Feather
+                  name={paymentPending ? "clock" : "credit-card"}
+                  size={17}
+                  color="#C2410C"
+                />
+              </View>
+              <View style={styles.paymentBannerContent}>
+                <Text style={styles.paymentBannerTitle}>
+                  {paymentStatusLabel}
+                </Text>
+                <Text style={styles.paymentBannerSubtitle} numberOfLines={1}>
+                  {paymentPending
+                    ? "Chạm để thanh toán lại hoặc kiểm tra giao dịch"
+                    : "Chạm để thanh toán lại qua PayOS"}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#C2410C" />
             </TouchableOpacity>
           )}
           <View style={styles.cardHeader}>
@@ -814,6 +899,29 @@ const styles = StyleSheet.create({
     color: "#B91C1C",
     marginTop: 1,
   },
+  paymentBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FFF7ED",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FDBA74",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+  },
+  paymentBannerIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#FFEDD5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  paymentBannerContent: { flex: 1 },
+  paymentBannerTitle: { fontSize: 13, fontWeight: "800", color: "#C2410C" },
+  paymentBannerSubtitle: { fontSize: 12, color: "#9A3412", marginTop: 1 },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
