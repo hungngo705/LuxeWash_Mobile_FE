@@ -128,6 +128,12 @@ export default function EditVehicleScreen() {
   const isOtherType = ["khác", "other"].includes(normalizeValue(selectedType?.name));
   const previewPhotoUri = pickedPhotoUri ?? vehicle?.imageUrl ?? null;
 
+  useEffect(() => {
+    if (selectedTypeId != null && !isOtherType) {
+      setUserNote("");
+    }
+  }, [isOtherType, selectedTypeId]);
+
   const filteredModels = useMemo(() => {
     const query = normalizeValue(modelSearch);
     return carModels
@@ -203,7 +209,7 @@ export default function EditVehicleScreen() {
         carModelId: isCustomModel ? undefined : selectedCarModel?.id,
         carModel: isCustomModel ? customModel.trim() : undefined,
         photoFile: getPickedPhoto(),
-        userNote: userNote.trim() || undefined,
+        userNote: isOtherType ? userNote.trim() : undefined,
       });
 
       if (response.statusCode !== 200) {
@@ -433,19 +439,21 @@ export default function EditVehicleScreen() {
               <Text style={styles.hint}>Nếu không chọn ảnh mới, hệ thống sẽ giữ ảnh hiện tại.</Text>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isOtherType ? "Mô tả loại xe *" : "Ghi chú"}</Text>
-              <TextInput
-                style={[styles.input, styles.noteInput]}
-                value={userNote}
-                onChangeText={setUserNote}
-                placeholder="Nhập ghi chú về xe"
-                placeholderTextColor={LuxeColors.outline}
-                multiline
-                maxLength={200}
-                textAlignVertical="top"
-              />
-            </View>
+            {isOtherType ? (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Mô tả loại xe *</Text>
+                <TextInput
+                  style={[styles.input, styles.noteInput]}
+                  value={userNote}
+                  onChangeText={setUserNote}
+                  placeholder="Nhập mô tả loại xe"
+                  placeholderTextColor={LuxeColors.outline}
+                  multiline
+                  maxLength={200}
+                  textAlignVertical="top"
+                />
+              </View>
+            ) : null}
 
             <TouchableOpacity
               style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}

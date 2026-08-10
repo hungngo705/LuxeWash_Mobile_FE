@@ -84,8 +84,8 @@ export default function ProfileScreen() {
       iconColor: "#F57C00",
       bgColor: '#F57C0020',
       title: "Thông báo",
-      subtitle: "Cài đặt thông báo",
-      onPress: () => {},
+      subtitle: "Lịch sử thông báo của bạn",
+      onPress: () => router.push("/notifications" as any),
     },
     {
       icon: "help-circle",

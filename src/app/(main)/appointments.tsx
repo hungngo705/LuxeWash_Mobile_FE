@@ -307,6 +307,7 @@ export default function AppointmentsScreen() {
     const paymentStatusLabel = item.paymentStatus
       ? PAYMENT_STATUS_LABEL[item.paymentStatus]
       : "Thanh toán lịch hẹn";
+    const paymentRefunded = item.paymentStatus === "Refunded";
 
     return (
       <TouchableOpacity
@@ -371,6 +372,19 @@ export default function AppointmentsScreen() {
               </View>
               <Feather name="chevron-right" size={18} color="#C2410C" />
             </TouchableOpacity>
+          )}
+          {paymentRefunded && (
+            <View style={styles.refundBanner}>
+              <View style={styles.refundBannerIcon}>
+                <Feather name="rotate-ccw" size={17} color="#1D4ED8" />
+              </View>
+              <View style={styles.paymentBannerContent}>
+                <Text style={styles.refundBannerTitle}>Đã hoàn tiền</Text>
+                <Text style={styles.refundBannerSubtitle} numberOfLines={1}>
+                  Khoản thanh toán của lịch hẹn này đã được hoàn
+                </Text>
+              </View>
+            </View>
           )}
           <View style={styles.cardHeader}>
             <View style={styles.dateTimeRow}>
@@ -922,6 +936,28 @@ const styles = StyleSheet.create({
   paymentBannerContent: { flex: 1 },
   paymentBannerTitle: { fontSize: 13, fontWeight: "800", color: "#C2410C" },
   paymentBannerSubtitle: { fontSize: 12, color: "#9A3412", marginTop: 1 },
+  refundBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#93C5FD",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+  },
+  refundBannerIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#DBEAFE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  refundBannerTitle: { fontSize: 13, fontWeight: "800", color: "#1D4ED8" },
+  refundBannerSubtitle: { fontSize: 12, color: "#1E40AF", marginTop: 1 },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",

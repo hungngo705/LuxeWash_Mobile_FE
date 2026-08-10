@@ -201,6 +201,7 @@ export type BookingPaymentStatus =
   | "Unpaid"
   | "Pending"
   | "Completed"
+  | "Refunded"
   | "Expired"
   | "Failed";
 

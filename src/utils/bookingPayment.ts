@@ -10,6 +10,7 @@ export const PAYMENT_STATUS_LABEL: Record<BookingPaymentStatus, string> = {
   Unpaid: "Chưa thanh toán",
   Pending: "Đang chờ xác nhận",
   Completed: "Đã thanh toán",
+  Refunded: "Đã hoàn tiền",
   Expired: "Thanh toán hết hạn",
   Failed: "Thanh toán thất bại",
 };

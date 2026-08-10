@@ -23,6 +23,7 @@ import {
 import {
   isRemotePushSupportedRuntime,
   parseOverloadNotification,
+  parseUserNotificationTarget,
   registerCurrentDevicePushToken,
   subscribeToOverloadNotifications,
 } from "@/services/pushNotificationService";
@@ -335,7 +336,18 @@ export function OverloadSuggestionProvider({ children }: { children: ReactNode }
       navigateToAppointments: boolean,
     ) => {
       const payload = parseOverloadNotification(data);
-      if (!payload) return;
+      if (!payload) {
+        if (!navigateToAppointments) return;
+        const target = parseUserNotificationTarget(data);
+        if (target?.type === "Booking" && target.referenceId) {
+          router.push(`/booking/${target.referenceId}` as never);
+        } else if (target?.type === "Vehicle") {
+          router.push("/vehicles" as never);
+        } else if (target?.type === "Voucher") {
+          router.push("/vouchers" as never);
+        }
+        return;
+      }
 
       // Bỏ qua nếu thông báo này đã xử lý; giới hạn kích thước tập ID đã lưu
       if (notificationId) {
