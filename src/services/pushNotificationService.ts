@@ -21,6 +21,12 @@ export interface OverloadNotificationPayload {
   bookingId: number;
 }
 
+/** Đích điều hướng khi khách bấm một push notification thông thường. */
+export interface UserNotificationTarget {
+  type: "Booking" | "Vehicle" | "Voucher";
+  referenceId: string | null;
+}
+
 /** Kết quả đăng ký token đẩy: thành công (kèm token) hoặc thất bại (kèm lý do) */
 export type PushRegistrationResult =
   | { status: "registered"; token: string }
@@ -116,6 +122,30 @@ export function parseOverloadNotification(
   if (!bookingId || !suggestionId) return null;
 
   return { type: "OVERLOAD_SUGGESTION", bookingId, suggestionId };
+}
+
+/** Đọc payload push do UserNotificationService của backend gửi kèm. */
+export function parseUserNotificationTarget(
+  rawData: Record<string, unknown> | null | undefined,
+): UserNotificationTarget | null {
+  if (!rawData) return null;
+  const data = normalizeData(rawData);
+  const rawType = String(data.type ?? data.Type ?? "").toLowerCase();
+  const type =
+    rawType === "booking"
+      ? "Booking"
+      : rawType === "vehicle"
+        ? "Vehicle"
+        : rawType === "voucher"
+          ? "Voucher"
+          : null;
+  if (!type) return null;
+
+  const value = data.referenceId ?? data.ReferenceId;
+  return {
+    type,
+    referenceId: value === null || value === undefined ? null : String(value),
+  };
 }
 
 // Tạo/cấu hình kênh thông báo Android riêng cho cảnh báo quá tải (độ ưu tiên cao)

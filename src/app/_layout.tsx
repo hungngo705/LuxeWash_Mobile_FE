@@ -14,6 +14,7 @@ import { useFonts } from 'expo-font';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { OverloadSuggestionProvider } from '@/contexts/OverloadSuggestionContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import { LuxeColors } from '@/constants/luxeTheme';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { ConfirmDialogProvider } from '@/components/ConfirmDialog';
@@ -78,10 +79,12 @@ export default function RootLayout() {
         <StatusBar style="dark" />
         <AuthProvider>
           <ConfirmDialogProvider>
-            <OverloadSuggestionProvider>
-              <AnimatedSplashOverlay />
-              <AppNavigator />
-            </OverloadSuggestionProvider>
+            <NotificationProvider>
+              <OverloadSuggestionProvider>
+                <AnimatedSplashOverlay />
+                <AppNavigator />
+              </OverloadSuggestionProvider>
+            </NotificationProvider>
           </ConfirmDialogProvider>
         </AuthProvider>
       </ThemeProvider>
@@ -165,6 +168,7 @@ function InnerNavigator() {
       <Stack.Screen name="profile-edit" />
       <Stack.Screen name="points" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="assistant" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="notifications/index" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="(main)" />
       <Stack.Screen
         name="booking"

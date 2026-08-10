@@ -601,17 +601,27 @@ export default function BookingDetailScreen() {
                                             styles.paymentStatusBadge,
                                             booking.paymentStatus === "Completed"
                                                 ? styles.paymentStatusCompleted
+                                                : booking.paymentStatus === "Refunded"
+                                                    ? styles.paymentStatusRefunded
                                                 : booking.paymentStatus === "Pending"
                                                     ? styles.paymentStatusPending
                                                     : styles.paymentStatusUnpaid,
                                         ]}
                                     >
                                         <Feather
-                                            name={booking.paymentStatus === "Completed" ? "check-circle" : "credit-card"}
+                                            name={
+                                                booking.paymentStatus === "Completed"
+                                                    ? "check-circle"
+                                                    : booking.paymentStatus === "Refunded"
+                                                        ? "rotate-ccw"
+                                                        : "credit-card"
+                                            }
                                             size={14}
                                             color={
                                                 booking.paymentStatus === "Completed"
                                                     ? "#15803D"
+                                                    : booking.paymentStatus === "Refunded"
+                                                        ? "#1D4ED8"
                                                     : booking.paymentStatus === "Pending"
                                                         ? "#B45309"
                                                         : "#C2410C"
@@ -622,6 +632,8 @@ export default function BookingDetailScreen() {
                                                 styles.paymentStatusText,
                                                 booking.paymentStatus === "Completed"
                                                     ? styles.paymentStatusTextCompleted
+                                                    : booking.paymentStatus === "Refunded"
+                                                        ? styles.paymentStatusTextRefunded
                                                     : booking.paymentStatus === "Pending"
                                                         ? styles.paymentStatusTextPending
                                                         : styles.paymentStatusTextUnpaid,
@@ -909,10 +921,12 @@ const styles = StyleSheet.create({
         borderRadius: 16,
     },
     paymentStatusCompleted: { backgroundColor: "#DCFCE7" },
+    paymentStatusRefunded: { backgroundColor: "#DBEAFE" },
     paymentStatusPending: { backgroundColor: "#FEF3C7" },
     paymentStatusUnpaid: { backgroundColor: "#FFEDD5" },
     paymentStatusText: { fontSize: 12, fontWeight: "700" },
     paymentStatusTextCompleted: { color: "#15803D" },
+    paymentStatusTextRefunded: { color: "#1D4ED8" },
     paymentStatusTextPending: { color: "#B45309" },
     paymentStatusTextUnpaid: { color: "#C2410C" },
     paymentButton: {

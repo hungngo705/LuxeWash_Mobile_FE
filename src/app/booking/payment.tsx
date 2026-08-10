@@ -46,6 +46,8 @@ const getStatusColors = (status: BookingPaymentStatus) => {
   switch (status) {
     case "Completed":
       return { background: "#DCFCE7", foreground: "#15803D", icon: "check-circle" as const };
+    case "Refunded":
+      return { background: "#DBEAFE", foreground: "#1D4ED8", icon: "rotate-ccw" as const };
     case "Pending":
       return { background: "#FEF3C7", foreground: "#B45309", icon: "clock" as const };
     case "Expired":
@@ -88,6 +90,8 @@ export default function BookingPaymentScreen() {
 
       if (nextStatus === "Completed") {
         setPaymentMessage("Thanh toán đã được xác nhận thành công.");
+      } else if (nextStatus === "Refunded") {
+        setPaymentMessage("Khoản thanh toán của lịch hẹn đã được hoàn tiền.");
       } else if (nextStatus === "Pending") {
         setPaymentMessage("Giao dịch đang chờ PayOS xác nhận.");
       } else if (nextStatus === "Expired") {
@@ -159,7 +163,12 @@ export default function BookingPaymentScreen() {
       );
       try {
         const status = await updatePaymentStatus();
-        if (status === "Completed" || status === "Expired" || status === "Failed") {
+        if (
+          status === "Completed" ||
+          status === "Refunded" ||
+          status === "Expired" ||
+          status === "Failed"
+        ) {
           return status;
         }
       } catch {
@@ -178,7 +187,7 @@ export default function BookingPaymentScreen() {
 
     try {
       const latestStatus = await updatePaymentStatus();
-      if (latestStatus === "Completed") return;
+      if (latestStatus === "Completed" || latestStatus === "Refunded") return;
       setPaymentMessage(
         latestStatus === "Pending"
           ? "Đang tạo giao dịch thanh toán mới..."
@@ -201,7 +210,7 @@ export default function BookingPaymentScreen() {
       await openBrowserAsync(linkResponse.data.paymentUrl);
 
       const status = await pollPaymentStatus();
-      if (status === "Completed") return;
+      if (status === "Completed" || status === "Refunded") return;
       if (status === "Expired" || status === "Failed") return;
 
       setPaymentMessage(
@@ -296,6 +305,8 @@ export default function BookingPaymentScreen() {
               <Text style={styles.noticeText}>
                 {paymentStatus === "Completed"
                   ? "Khoản thanh toán cho lịch hẹn đã được xác nhận."
+                  : paymentStatus === "Refunded"
+                    ? "Khoản thanh toán đã được hoàn. Lịch hẹn này không cần thanh toán lại."
                   : paymentStatus === "Pending"
                     ? "Giao dịch trước vẫn đang chờ. Bạn có thể thanh toán lại bằng link mới hoặc kiểm tra trạng thái."
                     : "Thanh toán an toàn qua cổng PayOS để hoàn tất lịch hẹn này."}
@@ -342,7 +353,7 @@ export default function BookingPaymentScreen() {
             </TouchableOpacity>
           )}
 
-          {paymentStatus === "Completed" && (
+          {(paymentStatus === "Completed" || paymentStatus === "Refunded") && (
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={() => router.replace(`/booking/${booking.bookingId}` as any)}

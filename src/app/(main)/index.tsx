@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LuxeColors, LuxeSpacing, LuxeBorderRadius, LuxeShadows, MembershipConfig } from '@/constants/luxeTheme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { bookingService } from '@/services/api';
 import { loyaltyService, Voucher } from '@/services/api/loyaltyService';
 
@@ -32,6 +33,7 @@ const MOCK_SERVICES = [
 export default function HomeScreen() {
   const router = useRouter();
   const { user, walletBalance, isAuthenticated, refreshProfile, refreshWallet } = useAuth();
+  const { unreadCount, refreshNotifications } = useNotifications();
   const [services, setServices] = useState<Array<{ serviceId: number; serviceName: string; description: string; prices: Array<{ vehicleTypeId: number; vehicleTypeName: string; price: number }> }>>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
@@ -90,11 +92,12 @@ export default function HomeScreen() {
         refreshWallet(),
         loadServices(),
         loadVouchers(),
+        refreshNotifications(),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [loadServices, loadVouchers, refreshProfile, refreshWallet]);
+  }, [loadServices, loadVouchers, refreshNotifications, refreshProfile, refreshWallet]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -140,7 +143,13 @@ export default function HomeScreen() {
               onPress={() => router.push('/notifications' as any)}
             >
               <Feather name="bell" size={22} color={LuxeColors.primaryContainer} />
-              <View style={styles.notificationBadge} />
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -418,14 +427,23 @@ const styles = StyleSheet.create({
   },
   notificationBadge: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: 4,
+    right: 3,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#FF5252',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#ffffff',
+  },
+  notificationBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: '800',
   },
   membershipCard: {
     margin: 20,

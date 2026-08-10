@@ -26,6 +26,7 @@ export type {
 } from "./bookingService";
 // Service đăng ký/huỷ token thông báo đẩy
 export { notificationService } from "./notificationService";
+export type { UserNotification } from "./notificationService";
 // Service & kiểu dữ liệu chi nhánh
 export { branchService } from "./branchService";
 export type { BranchDTO } from "./branchService";
