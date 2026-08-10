@@ -137,7 +137,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             },
           })
           .withAutomaticReconnect([0, 2000, 10000, 30000])
-          .configureLogging(LogLevel.Warning)
+          // SignalR ghi lỗi negotiation bằng console.error trước khi Promise
+          // connection.start() bị reject. Trong Expo development, console.error
+          // sẽ mở LogBox dù lỗi đã được catch bên dưới. Kết nối này là best-effort
+          // và đã có REST fallback + retry, nên không đẩy log nội bộ lên giao diện.
+          .configureLogging(LogLevel.None)
           .build();
 
         connection.on("ReceiveNotification", (raw: unknown) => {
@@ -164,6 +168,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       try {
         await connection.start();
       } catch {
+        // 401 có thể xảy ra ngắn hạn khi REST đang refresh access token.
+        // Không để lỗi nền ảnh hưởng UI; lần retry sau sẽ lấy token mới.
         if (!disposed) retryTimer = setTimeout(() => void startConnection(), 10000);
       }
     };
@@ -183,7 +189,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       appStateSubscription.remove();
       if (connection) {
         connection.off("ReceiveNotification");
-        void connection.stop();
+        void connection.stop().catch(() => undefined);
       }
     };
   }, [isAuthLoading, isAuthenticated, refreshNotifications, user?.id]);
