@@ -177,9 +177,13 @@ export interface BookingDetailResponse {
   checkOutImageUrl?: string | null;
 }
 
-/** Phản hồi khi tạo booking thành công — chỉ trả về id */
+/** Phản hồi khi tạo booking thành công cùng giá đã được backend xác nhận. */
 export interface CreateBookingResponse {
   bookingId: number;
+  originalPrice: number;
+  pointDiscountAmount: number;
+  voucherDiscountAmount: number;
+  finalAmount: number;
 }
 
 /** Tham số tạo link thanh toán (URL quay lại/huỷ khi thanh toán online) */
