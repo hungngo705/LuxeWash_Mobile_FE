@@ -4,10 +4,8 @@
  */
 
 import {
-    LuxeBorderRadius,
-    LuxeColors,
-    LuxeSpacing,
-    LuxeShadows,
+  LuxeColors,
+  LuxeShadows,
 } from "@/constants/luxeTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { bookingService, loyaltyService, type Voucher } from "@/services/api";
@@ -39,7 +37,7 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export default function BookingConfirmationScreen() {
   const router = useRouter();
-  const { user, walletBalance, refreshWallet } = useAuth();
+  const { walletBalance, refreshWallet } = useAuth();
   const params = useLocalSearchParams();
 
   const serviceIdParam = parseInt(params.serviceId as string) || 0;
@@ -52,7 +50,6 @@ export default function BookingConfirmationScreen() {
   const vehicleIdParam = (params.vehicleId as string) || "";
   const vehicleDbIdParam = (params.vehicleDbId as string) || "";
   const vehicleIdNumericParam = parseInt(vehicleDbIdParam) || 0;
-  const vehicleTypeIdParam = parseInt(params.vehicleTypeId as string) || 1;
   const vehicleBrandParam = (params.vehicleBrand as string) || "";
   const branchIdParam = parseInt(params.branchId as string) || 1;
   const branchNameParam = (params.branchName as string) || "LuxeWash";
@@ -127,7 +124,11 @@ export default function BookingConfirmationScreen() {
     });
 
   const goToSuccess = useCallback(
-    async (bookingId: number) => {
+    async (
+      bookingId: number,
+      confirmedFinalAmount = finalPrice,
+      confirmedVoucherDiscount = voucherDiscountAmount,
+    ) => {
       await refreshWallet?.();
       bookingService.triggerEmail(bookingId).catch(() => {});
       branchHistoryService.addRecentBranch({
@@ -142,9 +143,9 @@ export default function BookingConfirmationScreen() {
           bookingId: String(bookingId),
           date: dateParam,
           timeSlot: timeRangeParam,
-          finalAmount: String(finalPrice),
+          finalAmount: String(confirmedFinalAmount),
           branchName: branchNameParam,
-          voucherDiscount: String(voucherDiscountAmount),
+          voucherDiscount: String(confirmedVoucherDiscount),
         },
       });
     },
@@ -218,13 +219,24 @@ export default function BookingConfirmationScreen() {
       });
 
       if (res.statusCode === 200 || res.statusCode === 201) {
-        const bookingId = (res.data as any)?.bookingId || 0;
+        const bookingId = res.data?.bookingId || 0;
 
         if (!bookingId) {
           throw new Error("Không tìm thấy mã đặt lịch sau khi tạo booking.");
         }
 
-        if (selectedPaymentMethod === "bank" && finalPrice > 0) {
+        // Backend là nguồn giá tin cậy cho cả ví và PayOS. Giá phía client chỉ
+        // dùng để preview trước khi tạo lịch.
+        const confirmedFinalAmount = Number(res.data?.finalAmount);
+        const chargedAmount = Number.isFinite(confirmedFinalAmount)
+          ? Math.max(0, confirmedFinalAmount)
+          : finalPrice;
+        const confirmedVoucherDiscount = Number(res.data?.voucherDiscountAmount);
+        const appliedVoucherDiscount = Number.isFinite(confirmedVoucherDiscount)
+          ? Math.max(0, confirmedVoucherDiscount)
+          : voucherDiscountAmount;
+
+        if (selectedPaymentMethod === "bank" && chargedAmount > 0) {
           setBankPaymentMessage("Đang tạo mã QR chuyển khoản...");
           const linkRes = await bookingService.createPaymentLink(bookingId, {
             returnUrl: buildPaymentReturnUrl(bookingId),
@@ -240,7 +252,7 @@ export default function BookingConfirmationScreen() {
 
           const isPaid = await waitForBookingPayment(bookingId);
           if (isPaid) {
-            await goToSuccess(bookingId);
+            await goToSuccess(bookingId, chargedAmount, appliedVoucherDiscount);
             return;
           }
 
@@ -264,9 +276,9 @@ export default function BookingConfirmationScreen() {
             bookingId: String(bookingId),
             date: dateParam,
             timeSlot: timeRangeParam,
-            finalAmount: String(finalPrice),
+            finalAmount: String(chargedAmount),
             branchName: branchNameParam,
-            voucherDiscount: String(voucherDiscountAmount),
+            voucherDiscount: String(appliedVoucherDiscount),
           },
         });
       } else {
