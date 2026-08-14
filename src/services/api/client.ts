@@ -11,8 +11,10 @@ import { fetch as expoFetch } from "expo/fetch";
 import { Platform } from "react-native";
 
 // Địa chỉ gốc của API backend và khoá lưu token trong bộ nhớ cục bộ
-const BASE_URL = "https://smartwash-be.onrender.com/api/v1";
-// const BASE_URL = 'http://10.0.2.2:5030/api/v1'; // Android emulator -> backend HTTP profile (localhost:5030 on the host)
+const PRODUCTION_BASE_URL = "https://smartwash-be.onrender.com/api/v1";
+// Android emulator -> backend HTTP profile (localhost:5030 on the host):
+// EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:5030/api/v1
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.trim() || PRODUCTION_BASE_URL;
 const ACCESS_TOKEN_KEY = "@luxewash_access_token";
 const REFRESH_TOKEN_KEY = "@luxewash_refresh_token";
 

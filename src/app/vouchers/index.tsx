@@ -10,7 +10,7 @@ import {
   LuxeShadows,
 } from '@/constants/luxeTheme';
 import { useAuth } from '@/contexts/AuthContext';
-import { loyaltyService, CAMPAIGN_BADGE_CONFIG, type Voucher, type VoucherCampaignType } from '@/services/api';
+import { loyaltyService, CAMPAIGN_BADGE_CONFIG, type RedeemableVoucher, type Voucher, type VoucherCampaignType } from '@/services/api';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -208,18 +208,24 @@ function RedeemModal({
   visible,
   onClose,
   vouchers,
+  loading,
+  loadError,
+  onRetry,
   onRedeem,
 }: {
   visible: boolean;
   onClose: () => void;
-  vouchers: Voucher[];
-  onRedeem: (voucherId: number) => void;
+  vouchers: RedeemableVoucher[];
+  loading: boolean;
+  loadError: string | null;
+  onRetry: () => void;
+  onRedeem: (voucherId: number) => Promise<boolean>;
 }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [redeeming, setRedeeming] = useState(false);
 
   const redeemable = useMemo(
-    () => vouchers.filter((v) => !v.isUsed && getDaysRemaining(v.expiryDate) > 0),
+    () => vouchers.filter((v) => getDaysRemaining(v.expiryDate) > 0),
     [vouchers],
   );
 
@@ -227,9 +233,11 @@ function RedeemModal({
     if (!selectedId) return;
     setRedeeming(true);
     try {
-      await onRedeem(selectedId);
-      setSelectedId(null);
-      onClose();
+      const succeeded = await onRedeem(selectedId);
+      if (succeeded) {
+        setSelectedId(null);
+        onClose();
+      }
     } finally {
       setRedeeming(false);
     }
@@ -256,7 +264,22 @@ function RedeemModal({
           </View>
 
           <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
-            {redeemable.length === 0 ? (
+            {loading ? (
+              <View style={styles.emptyModalState}>
+                <ActivityIndicator color={LuxeColors.primary} size="large" />
+                <Text style={styles.emptyModalDesc}>Đang tải voucher...</Text>
+              </View>
+            ) : loadError ? (
+              <View style={styles.emptyModalState}>
+                <Feather name="alert-circle" size={40} color={LuxeColors.error} />
+                <Text style={styles.emptyModalTitle}>Không thể tải voucher</Text>
+                <Text style={styles.emptyModalDesc}>{loadError}</Text>
+                <TouchableOpacity style={styles.retryModalButton} onPress={onRetry}>
+                  <Feather name="refresh-cw" size={15} color={LuxeColors.primary} />
+                  <Text style={styles.retryModalButtonText}>Thử lại</Text>
+                </TouchableOpacity>
+              </View>
+            ) : redeemable.length === 0 ? (
               <View style={styles.emptyModalState}>
                 <Feather name="gift" size={40} color={LuxeColors.outlineVariant} />
                 <Text style={styles.emptyModalTitle}>Không có voucher nào khả dụng</Text>
@@ -353,24 +376,44 @@ export default function VouchersScreen() {
   const { user, refreshProfile } = useAuth();
 
   const [allVouchers, setAllVouchers] = useState<Voucher[]>([]);
+  const [redeemableVouchers, setRedeemableVouchers] = useState<RedeemableVoucher[]>([]);
+  const [redeemableLoading, setRedeemableLoading] = useState(true);
+  const [redeemableLoadError, setRedeemableLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [showRedeemModal, setShowRedeemModal] = useState(false);
-  const [redeeming, setRedeeming] = useState(false);
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
+    setRedeemableLoading(true);
+    setRedeemableLoadError(null);
     try {
-      const res = await loyaltyService.getMyVouchers();
-      if (res.statusCode === 200 && res.data) {
-        setAllVouchers(res.data);
+      const [ownedResult, redeemableResult] = await Promise.allSettled([
+        loyaltyService.getMyVouchers(),
+        loyaltyService.getAvailableVouchers(),
+      ]);
+
+      if (ownedResult.status === 'fulfilled' && ownedResult.value.statusCode === 200) {
+        setAllVouchers(ownedResult.value.data ?? []);
+      } else if (ownedResult.status === 'rejected') {
+        console.warn('Could not load owned vouchers:', ownedResult.reason);
+      }
+
+      if (redeemableResult.status === 'fulfilled' && redeemableResult.value.statusCode === 200) {
+        setRedeemableVouchers(redeemableResult.value.data ?? []);
+        setRedeemableLoadError(null);
+      } else if (redeemableResult.status === 'rejected') {
+        console.warn('Could not load redeemable vouchers:', redeemableResult.reason);
+        setRedeemableVouchers([]);
+        setRedeemableLoadError('Máy chủ chưa cung cấp danh sách voucher để đổi. Vui lòng thử lại sau.');
       }
     } catch (e) {
       console.warn('Could not load vouchers:', e);
     } finally {
       setLoading(false);
+      setRedeemableLoading(false);
       setRefreshing(false);
     }
   }, []);
@@ -378,6 +421,26 @@ export default function VouchersScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const reloadRedeemableVouchers = useCallback(async () => {
+    setRedeemableLoading(true);
+    setRedeemableLoadError(null);
+    try {
+      const response = await loyaltyService.getAvailableVouchers();
+      setRedeemableVouchers(response.data ?? []);
+    } catch (error) {
+      console.warn('Could not reload redeemable vouchers:', error);
+      setRedeemableVouchers([]);
+      setRedeemableLoadError('Máy chủ chưa cung cấp danh sách voucher để đổi. Vui lòng thử lại sau.');
+    } finally {
+      setRedeemableLoading(false);
+    }
+  }, []);
+
+  const openRedeemModal = useCallback(() => {
+    setShowRedeemModal(true);
+    void reloadRedeemableVouchers();
+  }, [reloadRedeemableVouchers]);
 
   const filteredVouchers = useMemo(() => {
     const now = new Date();
@@ -400,17 +463,17 @@ export default function VouchersScreen() {
   }, [allVouchers, activeTab]);
 
   const handleRedeemVoucher = async (voucherId: number) => {
-    setRedeeming(true);
     try {
       const res = await loyaltyService.redeemVoucher(voucherId);
       if (res.statusCode === 200) {
         await refreshProfile?.();
-        loadData();
+        await loadData();
+        return true;
       }
+      return false;
     } catch (e: any) {
       alert(e?.message || 'Đổi voucher thất bại');
-    } finally {
-      setRedeeming(false);
+      return false;
     }
   };
 
@@ -439,7 +502,7 @@ export default function VouchersScreen() {
         <Text style={styles.headerTitle}>Kho voucher</Text>
         <TouchableOpacity
           style={styles.redeemPointsBtn}
-          onPress={() => setShowRedeemModal(true)}
+          onPress={openRedeemModal}
         >
           <Feather name="gift" size={18} color={LuxeColors.primaryContainer} />
         </TouchableOpacity>
@@ -533,7 +596,10 @@ export default function VouchersScreen() {
       <RedeemModal
         visible={showRedeemModal}
         onClose={() => setShowRedeemModal(false)}
-        vouchers={allVouchers}
+        vouchers={redeemableVouchers}
+        loading={redeemableLoading}
+        loadError={redeemableLoadError}
+        onRetry={() => void reloadRedeemableVouchers()}
         onRedeem={handleRedeemVoucher}
       />
     </SafeAreaView>
@@ -962,6 +1028,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: LuxeColors.onSurfaceVariant,
     textAlign: 'center',
+  },
+  retryModalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: LuxeBorderRadius.full,
+    backgroundColor: LuxeColors.primaryContainer,
+  },
+  retryModalButtonText: {
+    color: LuxeColors.primary,
+    fontSize: 13,
+    fontWeight: '700',
   },
   redeemItem: {
     flexDirection: 'row',

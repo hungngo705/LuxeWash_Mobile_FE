@@ -6,6 +6,7 @@ import {
   LuxeSpacing,
 } from "@/constants/luxeTheme";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useOverloadSuggestions } from "@/contexts/OverloadSuggestionContext";
 import type { UserNotification } from "@/services/api";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -26,6 +27,7 @@ const TYPE_STYLE: Record<
   { icon: React.ComponentProps<typeof Feather>["name"]; color: string; background: string }
 > = {
   booking: { icon: "calendar", color: "#087EA4", background: "#E0F2FE" },
+  overload_suggestion: { icon: "alert-triangle", color: "#B91C1C", background: "#FEE2E2" },
   vehicle: { icon: "truck", color: "#2E7D32", background: "#E8F5E9" },
   voucher: { icon: "gift", color: "#C2410C", background: "#FFF7ED" },
 };
@@ -49,6 +51,7 @@ function formatNotificationTime(value: string): string {
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const { openSuggestionForBooking } = useOverloadSuggestions();
   const {
     notifications,
     unreadCount,
@@ -59,11 +62,16 @@ export default function NotificationsScreen() {
     markAllAsRead,
   } = useNotifications();
 
-  const openNotification = (notification: UserNotification) => {
-    void markAsRead(notification.id).catch(() => undefined);
+  const openNotification = async (notification: UserNotification) => {
+    await markAsRead(notification.id).catch(() => undefined);
 
     const type = notification.type.toLowerCase();
-    if (type === "booking" && notification.referenceId) {
+    if (type === "overload_suggestion" && notification.referenceId) {
+      const bookingId = Number(notification.referenceId);
+      if (Number.isInteger(bookingId) && bookingId > 0) {
+        await openSuggestionForBooking(bookingId);
+      }
+    } else if (type === "booking" && notification.referenceId) {
       router.push(`/booking/${notification.referenceId}` as any);
     } else if (type === "vehicle") {
       router.push("/vehicles" as any);
@@ -82,7 +90,7 @@ export default function NotificationsScreen() {
     return (
       <TouchableOpacity
         style={[styles.card, !item.isRead && styles.unreadCard]}
-        onPress={() => openNotification(item)}
+        onPress={() => void openNotification(item)}
         activeOpacity={0.78}
         accessibilityRole="button"
         accessibilityLabel={`${item.isRead ? "" : "Chưa đọc. "}${item.title}. ${item.body}`}

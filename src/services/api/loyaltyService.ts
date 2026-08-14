@@ -57,6 +57,25 @@ export interface Voucher {
   validEndTime: string | null; // Khung giờ kết thúc áp dụng
 }
 
+/** Voucher thủ công đang mở để khách hàng đổi bằng điểm. */
+export type RedeemableVoucher = Pick<
+  Voucher,
+  | 'voucherId'
+  | 'code'
+  | 'discountAmount'
+  | 'pointsRequired'
+  | 'expiryDate'
+  | 'minOrderAmount'
+  | 'maxUsagePerUser'
+  | 'campaignType'
+  | 'voucherType'
+  | 'imageUrl'
+  | 'requiredTierId'
+  | 'requiredTierName'
+  | 'validStartTime'
+  | 'validEndTime'
+>;
+
 /** Nhãn hiển thị cho từng loại voucher */
 export const VOUCHER_TYPE_LABELS: Record<VoucherType, string> = {
   [0]: 'Discount',
@@ -100,8 +119,8 @@ export const loyaltyService = {
   },
 
   /** Lấy danh sách voucher có thể đổi (bằng điểm) */
-  getAvailableVouchers: async (): Promise<ApiResponse<Voucher[]>> => {
-    return apiClient.get<Voucher[]>('/vouchers/available');
+  getAvailableVouchers: async (): Promise<ApiResponse<RedeemableVoucher[]>> => {
+    return apiClient.get<RedeemableVoucher[]>('/vouchers/available');
   },
 
   /** Đổi điểm lấy voucher theo voucherId */

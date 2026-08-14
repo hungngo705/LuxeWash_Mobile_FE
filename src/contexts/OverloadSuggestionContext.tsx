@@ -42,6 +42,11 @@ interface ActiveSuggestion {
   booking: MyBookingItem | null;
 }
 
+interface PendingNotificationResponse {
+  data: Record<string, unknown>;
+  notificationId: string;
+}
+
 /** Giá trị context cung cấp cho các màn hình */
 interface OverloadSuggestionContextValue {
   suggestionsByBookingId: Record<number, OverloadSuggestion>; // Map bookingId -> đề xuất còn hiệu lực
@@ -51,7 +56,7 @@ interface OverloadSuggestionContextValue {
     bookings?: MyBookingItem[],
     openFirst?: boolean,
   ) => Promise<void>;
-  openSuggestionForBooking: (booking: MyBookingItem) => Promise<void>;
+  openSuggestionForBooking: (booking: MyBookingItem | number) => Promise<void>;
 }
 
 const OverloadSuggestionContext = createContext<OverloadSuggestionContextValue | null>(null);
@@ -92,6 +97,9 @@ export function OverloadSuggestionProvider({ children }: { children: ReactNode }
 
   const bookingsRef = useRef<MyBookingItem[]>([]); // Cache danh sách booking gần nhất
   const handledNotificationIdsRef = useRef(new Set<string>()); // ID thông báo đã xử lý (chống trùng)
+  const pendingNotificationResponseRef = useRef<PendingNotificationResponse | null>(null);
+  const authStateRef = useRef({ isAuthLoading, isAuthenticated });
+  authStateRef.current = { isAuthLoading, isAuthenticated };
 
   // Hiển thị hộp thoại thông báo đơn giản (chỉ nút "Đã hiểu")
   const showMessage = useCallback(
@@ -206,11 +214,18 @@ export function OverloadSuggestionProvider({ children }: { children: ReactNode }
 
   // Mở modal đề xuất cho một booking cụ thể (khi khách bấm vào từ màn hình)
   const openSuggestionForBooking = useCallback(
-    async (booking: MyBookingItem) => {
+    async (bookingOrId: MyBookingItem | number) => {
+      const bookingId =
+        typeof bookingOrId === "number" ? bookingOrId : bookingOrId.bookingId;
       try {
-        const suggestion = await fetchSuggestion(booking.bookingId, false);
+        const suggestion = await fetchSuggestion(
+          bookingId,
+          typeof bookingOrId === "number",
+        );
         if (suggestion) {
-          setActiveSuggestion({ suggestion, booking });
+          if (typeof bookingOrId !== "number") {
+            setActiveSuggestion({ suggestion, booking: bookingOrId });
+          }
         } else {
           showMessage("Đề xuất không còn hiệu lực", "Đề xuất đã được xử lý hoặc đã hết hạn.");
         }
@@ -371,7 +386,73 @@ export function OverloadSuggestionProvider({ children }: { children: ReactNode }
     [fetchSuggestion],
   );
 
-  // Thiết lập khi khách đăng nhập: dò đề xuất, đăng ký push, và dò lại khi app trở lại foreground
+  const notificationHandlerRef = useRef(handleNotificationData);
+  notificationHandlerRef.current = handleNotificationData;
+
+  // Gắn listener ngay khi app mount, trước lúc API khôi phục xong phiên đăng nhập.
+  // Nếu notification mở app ở cold start, giữ response lại và xử lý sau khi auth sẵn sàng.
+  useEffect(() => {
+    if (!isRemotePushSupportedRuntime()) return;
+
+    let disposed = false;
+    let removeNotificationListeners = () => {};
+
+    void subscribeToOverloadNotifications({
+      onReceived: (event) => {
+        const auth = authStateRef.current;
+        if (auth.isAuthLoading || !auth.isAuthenticated) return;
+        return notificationHandlerRef.current(
+          event.data,
+          event.notificationId,
+          false,
+        );
+      },
+      onResponse: (event) => {
+        const auth = authStateRef.current;
+        if (auth.isAuthLoading || !auth.isAuthenticated) {
+          pendingNotificationResponseRef.current = event;
+          return;
+        }
+        return notificationHandlerRef.current(
+          event.data,
+          event.notificationId,
+          true,
+        );
+      },
+    })
+      .then((removeListeners) => {
+        if (disposed) {
+          removeListeners();
+        } else {
+          removeNotificationListeners = removeListeners;
+        }
+      })
+      .catch(() => {
+        // API discovery remains available if the native notification module fails to load.
+      });
+
+    return () => {
+      disposed = true;
+      removeNotificationListeners();
+    };
+  }, []);
+
+  // Navigation và API chỉ được gọi sau khi AuthProvider khôi phục xong token/người dùng.
+  useEffect(() => {
+    if (isAuthLoading || !isAuthenticated) return;
+
+    const pendingResponse = pendingNotificationResponseRef.current;
+    if (!pendingResponse) return;
+
+    pendingNotificationResponseRef.current = null;
+    void handleNotificationData(
+      pendingResponse.data,
+      pendingResponse.notificationId,
+      true,
+    );
+  }, [handleNotificationData, isAuthLoading, isAuthenticated]);
+
+  // Khi khách đã đăng nhập: dò đề xuất, đăng ký token và dò lại khi app trở lại foreground.
   useEffect(() => {
     // Chưa đăng nhập -> xoá trạng thái và dừng
     if (isAuthLoading || !isAuthenticated) {
@@ -382,45 +463,34 @@ export function OverloadSuggestionProvider({ children }: { children: ReactNode }
 
     void discoverSuggestions(undefined, true);
     const supportsRemotePush = isRemotePushSupportedRuntime();
-    let disposed = false;
-    let removeNotificationListeners = () => {};
+
+    const registerPushToken = () => {
+      void registerCurrentDevicePushToken().then((result) => {
+        if (result.status === "error") {
+          console.warn(`[Push notification] ${result.message}`);
+        }
+      });
+    };
 
     if (supportsRemotePush) {
-      void registerCurrentDevicePushToken();
-      void subscribeToOverloadNotifications({
-        onReceived: ({ data, notificationId }) =>
-          handleNotificationData(data, notificationId, false),
-        onResponse: ({ data, notificationId }) =>
-          handleNotificationData(data, notificationId, true),
-      }).then((removeListeners) => {
-        if (disposed) {
-          removeListeners();
-        } else {
-          removeNotificationListeners = removeListeners;
-        }
-      }).catch(() => {
-        // API discovery remains available if the native notification module fails to load.
-      });
+      registerPushToken();
     }
 
     // Mỗi khi app trở lại (active): đăng ký lại token và dò lại đề xuất
     const appStateSubscription = AppState.addEventListener("change", (state) => {
       if (state === "active") {
         if (supportsRemotePush) {
-          void registerCurrentDevicePushToken();
+          registerPushToken();
         }
         void discoverSuggestions();
       }
     });
 
     return () => {
-      disposed = true;
-      removeNotificationListeners();
       appStateSubscription.remove();
     };
   }, [
     discoverSuggestions,
-    handleNotificationData,
     isAuthLoading,
     isAuthenticated,
     user?.id,
