@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "698312649848",
+    "project_id": "smartwash-a9f29",
+    "storage_bucket": "smartwash-a9f29.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:698312649848:android:c8fde9eca646429a50118d",
+        "android_client_info": {
+          "package_name": "com.luxewash.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkY_X_iKLfz2C-QPjStgGP8SjAvxs13gg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

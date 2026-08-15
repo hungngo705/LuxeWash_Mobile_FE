@@ -39,6 +39,7 @@ export {
 export { loyaltyService } from "./loyaltyService";
 export {
     PointHistoryItem,
+    RedeemableVoucher,
     Tier,
     Voucher,
     VoucherCampaignType,

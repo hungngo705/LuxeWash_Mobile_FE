@@ -260,7 +260,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           {/* Version */}
-          <Text style={styles.version}>LuxeWash v1.0.0</Text>
+          <Text style={styles.version}>LuxeWash v1.0.1</Text>
 
           <View style={{ height: 80 }} />
         </ScrollView>

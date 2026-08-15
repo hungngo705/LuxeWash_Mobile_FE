@@ -275,19 +275,23 @@ export async function subscribeToOverloadNotifications({
     void registerRotatedDevicePushToken(token);
   });
 
-  // Xử lý thông báo đã mở app từ trạng thái tắt hẳn (cold start)
-  void Notifications.getLastNotificationResponseAsync()
-    .then(async (response) => {
-      if (!response) return;
-      await onResponse({
-        data: response.notification.request.content.data,
-        notificationId: response.notification.request.identifier,
+  // SDK 54 lưu response cuối ở native ngay cả khi JS chưa khởi tạo. Đọc đồng bộ
+  // sau khi listener đã được gắn để không bỏ lỡ thao tác mở app từ trạng thái tắt hẳn.
+  try {
+    const response = Notifications.getLastNotificationResponse();
+    if (response) {
+      void Promise.resolve(
+        onResponse({
+          data: response.notification.request.content.data,
+          notificationId: response.notification.request.identifier,
+        }),
+      ).finally(() => {
+        Notifications.clearLastNotificationResponse();
       });
-      await Notifications.clearLastNotificationResponseAsync();
-    })
-    .catch(() => {
-      // Fallback discovery still runs when cold-start notification state is unavailable.
-    });
+    }
+  } catch {
+    // API discovery remains the fallback if native response state is unavailable.
+  }
 
   // Hàm dọn dẹp: gỡ toàn bộ listener
   return () => {

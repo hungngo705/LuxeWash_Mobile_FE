@@ -211,7 +211,7 @@ export default function LoginScreen() {
           </View>
 
           {/* Footer */}
-          <Text style={styles.footer}>LuxeWash v1.0.0</Text>
+          <Text style={styles.footer}>LuxeWash v1.0.1</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
