@@ -6,10 +6,11 @@
 import {
   LuxeColors,
   LuxeShadows,
+  translateTierName,
 } from '@/constants/luxeTheme';
 import type { Voucher } from '@/services/api';
 import { Feather } from '@expo/vector-icons';
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -131,7 +132,7 @@ function VoucherCard({ voucher, isSelected, usable, unusableReason, orderAmount,
           {voucher.requiredTierName && (
             <View style={styles.tierBadge}>
               <Feather name="star" size={9} color="#7C3AED" />
-              <Text style={styles.tierBadgeText}>{voucher.requiredTierName}</Text>
+              <Text style={styles.tierBadgeText}>{translateTierName(voucher.requiredTierName)}</Text>
             </View>
           )}
         </View>
@@ -186,6 +187,14 @@ export function VoucherSelectionModal({
   onSelect,
   onClose,
 }: VoucherSelectionModalProps) {
+  // Lọc bỏ các voucher không dùng được (đã dùng / hết hạn / vượt đơn tối thiểu)
+  // trước khi render — yêu cầu nghiệp vụ: không hiển thị voucher đã sử dụng
+  // hoặc không thể sử dụng.
+  const usableVouchers = useMemo(
+    () => vouchers.filter((v) => isVoucherUsable(v, orderAmount).usable),
+    [vouchers, orderAmount],
+  );
+
   return (
     <Modal
       visible={visible}
@@ -223,12 +232,12 @@ export function VoucherSelectionModal({
               <ActivityIndicator size="large" color={LuxeColors.primaryContainer} />
               <Text style={styles.loadingText}>Đang tải voucher...</Text>
             </View>
-          ) : vouchers.length === 0 ? (
+          ) : usableVouchers.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Feather name="gift" size={40} color={LuxeColors.outlineVariant} />
-              <Text style={styles.emptyTitle}>Chưa có voucher nào</Text>
+              <Text style={styles.emptyTitle}>Chưa có voucher khả dụng</Text>
               <Text style={styles.emptySubtitle}>
-                Bạn chưa có voucher nào phù hợp.{'\n'}
+                Bạn chưa có voucher nào áp dụng được cho đơn này.{'\n'}
                 Đổi điểm thưởng để nhận voucher tại mục Voucher.
               </Text>
             </View>
@@ -238,11 +247,11 @@ export function VoucherSelectionModal({
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
             >
-              {vouchers.map((voucher) => {
+              {usableVouchers.map((voucher, index) => {
                 const { usable, reason } = isVoucherUsable(voucher, orderAmount);
                 return (
                   <VoucherCard
-                    key={voucher.voucherId}
+                    key={`${voucher.voucherId}-${voucher.receivedDate}-${index}`}
                     voucher={voucher}
                     isSelected={selectedVoucher?.voucherId === voucher.voucherId}
                     usable={usable}

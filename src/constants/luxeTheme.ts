@@ -96,8 +96,8 @@ export const MembershipConfig: Record<MembershipTier, {
   pointMultiplier: number; // Hệ số nhân điểm tích luỹ
 }> = {
   standard: {
-    name: 'Standard',
-    nameVi: 'Standard',
+    name: 'Tiêu chuẩn',
+    nameVi: 'Tiêu chuẩn',
     maxAdvanceDays: 7,
     color: MembershipColors.standard,
     benefits: ['Đặt lịch trước 7 ngày', 'Thanh toán ví'],
@@ -105,7 +105,7 @@ export const MembershipConfig: Record<MembershipTier, {
     pointMultiplier: 1,
   },
   silver: {
-    name: 'Silver',
+    name: 'Bạc',
     nameVi: 'Bạc',
     maxAdvanceDays: 10,
     color: MembershipColors.silver,
@@ -114,7 +114,7 @@ export const MembershipConfig: Record<MembershipTier, {
     pointMultiplier: 1.5,
   },
   gold: {
-    name: 'Gold',
+    name: 'Vàng',
     nameVi: 'Vàng',
     maxAdvanceDays: 12,
     color: MembershipColors.gold,
@@ -123,7 +123,7 @@ export const MembershipConfig: Record<MembershipTier, {
     pointMultiplier: 2,
   },
   platinum: {
-    name: 'Platinum',
+    name: 'Bạch kim',
     nameVi: 'Bạch kim',
     maxAdvanceDays: 14,
     color: MembershipColors.platinum,
@@ -132,7 +132,7 @@ export const MembershipConfig: Record<MembershipTier, {
     pointMultiplier: 3,
   },
   diamond: {
-    name: 'Diamond',
+    name: 'Kim cương',
     nameVi: 'Kim cương',
     maxAdvanceDays: 30,
     color: MembershipColors.diamond,
@@ -140,6 +140,41 @@ export const MembershipConfig: Record<MembershipTier, {
     discountRate: 0.20,
     pointMultiplier: 4,
   },
+};
+
+/**
+ * Bảng ánh xạ từ tên hạng thành viên (tiếng Anh, do backend trả về)
+ * sang nhãn tiếng Việt để hiển thị trên giao diện.
+ *
+ * Áp dụng cho `tierName` (UserProfile) và `requiredTierName` (Voucher) vốn
+ * được backend trả về dưới dạng "Standard", "Silver", "Gold", "Platinum", "Diamond".
+ */
+export const MEMBERSHIP_TIER_VI_LABELS: Record<string, string> = {
+  standard: 'Tiêu chuẩn',
+  silver: 'Bạc',
+  gold: 'Vàng',
+  platinum: 'Bạch kim',
+  diamond: 'Kim cương',
+  // Một số backend có thể trả về dạng viết hoa chữ đầu
+  Standard: 'Tiêu chuẩn',
+  Silver: 'Bạc',
+  Gold: 'Vàng',
+  Platinum: 'Bạch kim',
+  Diamond: 'Kim cương',
+  STANDARD: 'Tiêu chuẩn',
+  SILVER: 'Bạc',
+  GOLD: 'Vàng',
+  PLATINUM: 'Bạch kim',
+  DIAMOND: 'Kim cương',
+};
+
+/**
+ * Dịch tên hạng thành viên (tiếng Anh) sang tiếng Việt.
+ * Nếu không tìm thấy trong bảng ánh xạ, trả về nguyên bản tiếng Anh.
+ */
+export const translateTierName = (tierName: string | null | undefined): string => {
+  if (!tierName) return '';
+  return MEMBERSHIP_TIER_VI_LABELS[tierName] || tierName;
 };
 
 /** Thang khoảng cách (padding/margin) dùng chung toàn app */
