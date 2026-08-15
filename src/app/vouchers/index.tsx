@@ -8,6 +8,7 @@ import {
   LuxeColors,
   LuxeSpacing,
   LuxeShadows,
+  translateTierName,
 } from '@/constants/luxeTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { loyaltyService, CAMPAIGN_BADGE_CONFIG, type RedeemableVoucher, type Voucher, type VoucherCampaignType } from '@/services/api';
@@ -48,13 +49,13 @@ const getDaysRemaining = (expiryDate: string): number => {
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 };
 
-type TabKey = 'all' | 'available' | 'used' | 'expired';
+type TabKey = 'all' | 'available';
 
+// Tab "Tất cả" và "Còn hiệu lực" đều chỉ hiển thị voucher khả dụng (chưa dùng + còn hạn).
+// Voucher đã dùng hoặc hết hạn được ẩn hoàn toàn khỏi danh sách.
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'all', label: 'Tất cả' },
   { key: 'available', label: 'Còn hiệu lực' },
-  { key: 'used', label: 'Đã dùng' },
-  { key: 'expired', label: 'Hết hạn' },
 ];
 
 // CAMPAIGN_BADGE_CONFIG is now imported from loyaltyService.ts
@@ -74,7 +75,7 @@ function TierBadge({ tierName }: { tierName: string | null }) {
   return (
     <View style={styles.tierBadge}>
       <Feather name="shield" size={10} color={LuxeColors.onSurfaceVariant} />
-      <Text style={styles.tierBadgeText}>{tierName}+</Text>
+      <Text style={styles.tierBadgeText}>{translateTierName(tierName)}+</Text>
     </View>
   );
 }
@@ -448,19 +449,11 @@ export default function VouchersScreen() {
       const expiry = new Date(v.expiryDate);
       const isExpired = expiry < now;
       const isUsed = v.isUsed || v.usageCount >= v.maxUsagePerUser;
-
-      switch (activeTab) {
-        case 'available':
-          return !isUsed && !isExpired;
-        case 'used':
-          return isUsed;
-        case 'expired':
-          return isExpired;
-        default:
-          return true;
-      }
+      // Ẩn hoàn toàn voucher đã dùng hoặc hết hạn — chỉ hiển thị voucher khả dụng
+      // (áp dụng cho cả tab "Tất cả" và "Còn hiệu lực").
+      return !isUsed && !isExpired;
     });
-  }, [allVouchers, activeTab]);
+  }, [allVouchers]);
 
   const handleRedeemVoucher = async (voucherId: number) => {
     try {
@@ -479,15 +472,16 @@ export default function VouchersScreen() {
 
   const tabCounts = useMemo(() => {
     const now = new Date();
-    const counts: Record<TabKey, number> = { all: 0, available: 0, used: 0, expired: 0 };
+    const counts: Record<TabKey, number> = { all: 0, available: 0 };
     for (const v of allVouchers) {
-      counts.all++;
       const expiry = new Date(v.expiryDate);
       const isExpired = expiry < now;
       const isUsed = v.isUsed || v.usageCount >= v.maxUsagePerUser;
-      if (isUsed) counts.used++;
-      else if (isExpired) counts.expired++;
-      else counts.available++;
+      // Đếm cả hai tab dựa trên voucher khả dụng (đã dùng/hết hạn bị ẩn).
+      if (!isUsed && !isExpired) {
+        counts.all++;
+        counts.available++;
+      }
     }
     return counts;
   }, [allVouchers]);
@@ -571,11 +565,7 @@ export default function VouchersScreen() {
             <Text style={styles.emptyTitle}>
               {activeTab === 'all'
                 ? 'Chưa có voucher nào'
-                : activeTab === 'available'
-                  ? 'Không có voucher khả dụng'
-                  : activeTab === 'used'
-                    ? 'Chưa có voucher đã dùng'
-                    : 'Không có voucher hết hạn'}
+                : 'Không có voucher khả dụng'}
             </Text>
             <Text style={styles.emptyDesc}>
               {activeTab === 'all'
@@ -585,8 +575,11 @@ export default function VouchersScreen() {
           </View>
         ) : (
           <View style={styles.voucherList}>
-            {filteredVouchers.map((voucher) => (
-              <VoucherCard key={voucher.voucherId} voucher={voucher} />
+            {filteredVouchers.map((voucher, index) => (
+              <VoucherCard
+                key={`${voucher.voucherId}-${voucher.receivedDate}-${index}`}
+                voucher={voucher}
+              />
             ))}
           </View>
         )}

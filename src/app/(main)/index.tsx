@@ -345,8 +345,11 @@ export default function HomeScreen() {
               </View>
             ) : vouchers.length > 0 ? (
               <View style={styles.promoCards}>
-                {vouchers.slice(0, 2).map((voucher) => (
-                  <View key={voucher.voucherId} style={styles.promoCard}>
+                {vouchers.slice(0, 2).map((voucher, index) => (
+                  <View
+                    key={`${voucher.voucherId}-${voucher.receivedDate}-${index}`}
+                    style={styles.promoCard}
+                  >
                     <View style={styles.promoBadge}>
                       <Text style={styles.promoBadgeText}>
                         -{voucher.discountAmount.toLocaleString('vi-VN')}đ

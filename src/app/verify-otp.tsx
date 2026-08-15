@@ -29,10 +29,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window"); // Chiều rộng màn hình để tính kích thước ô OTP
-const OTP_LENGTH = 6; // Số chữ số của mã OTP
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const OTP_LENGTH = 6;
 
-/** Che bớt email hiển thị, ví dụ "ab***cd@gmail.com" để bảo mật. */
 function maskEmail(email: string): string {
   if (!email || !email.includes("@")) return email;
   const [local] = email.split("@");
@@ -42,40 +41,32 @@ function maskEmail(email: string): string {
   return `${first}***${last}@${email.split("@")[1]}`;
 }
 
-/**
- * Màn hình xác thực email bằng OTP.
- * Nhập 6 chữ số (hỗ trợ dán), tự động nhảy ô; xác thực xong thì đăng nhập và vào (main).
- * Có bộ đếm ngược để gửi lại mã.
- */
 export default function VerifyOtpScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string }>();
   const { loginFromOtp } = useAuth();
 
-  const email = params.email ?? ""; // Email cần xác thực (truyền qua tham số route)
+  const email = params.email ?? "";
 
-  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill("")); // Mảng 6 ô nhập OTP
-  const [isSubmitting, setIsSubmitting] = useState(false); // Đang gửi xác thực
-  const [apiError, setApiError] = useState<string | null>(null); // Lỗi khi xác thực
-  const [countdown, setCountdown] = useState(0); // Đếm ngược trước khi cho gửi lại mã
-  const [isResending, setIsResending] = useState(false); // Đang gửi lại mã
-  const [resendError, setResendError] = useState<string | null>(null); // Lỗi khi gửi lại mã
+  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
 
-  const inputRefs = useRef<(TextInput | null)[]>([]); // Tham chiếu tới từng ô để điều khiển focus
+  const inputRefs = useRef<(TextInput | null)[]>([]);
 
-  // Đủ 6 chữ số hợp lệ thì mới cho phép gửi
   const isOtpComplete = otp.every(d => d.length === 1 && /^\d$/.test(d));
 
-  // Bộ đếm ngược thời gian gửi lại mã (giảm mỗi giây)
   useEffect(() => {
     if (countdown <= 0) return;
-    const timer = setTimeout(() => {
-      setCountdown(prev => Math.max(0, prev - 1));
+    const timer = setInterval(() => {
+      setCountdown(prev => prev - 1);
     }, 1000);
-    return () => clearTimeout(timer);
-  }, [countdown]);
+    return () => clearInterval(timer);
+  }, [countdown > 0]);
 
-  // Xử lý nhập/dán OTP: nếu dán nhiều chữ số thì điền lần lượt, ngược lại điền 1 ô và nhảy ô kế
   const handleOtpChange = (index: number, value: string) => {
     setApiError(null);
 
@@ -105,14 +96,12 @@ export default function VerifyOtpScreen() {
     }
   };
 
-  // Nhấn Backspace ở ô rỗng thì quay lại focus ô trước đó
   const handleKeyPress = (index: number, e: { nativeEvent: { key: string } }) => {
     if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
-  // Gửi mã OTP để xác thực; thành công thì đăng nhập và điều hướng vào app (có timeout an toàn 15s)
   const handleSubmit = async () => {
     if (!isOtpComplete || isSubmitting) return;
 
@@ -143,6 +132,7 @@ export default function VerifyOtpScreen() {
         String(data.userId),
         data.phoneNumber,
         data.fullName,
+        data.role,
       );
 
       Alert.alert(
@@ -161,7 +151,6 @@ export default function VerifyOtpScreen() {
     }
   };
 
-  // Gửi lại mã OTP: đặt lại đếm ngược 30s, xóa các ô và focus ô đầu
   const handleResend = async () => {
     if (countdown > 0 || isResending) return;
     setIsResending(true);
@@ -294,7 +283,6 @@ export default function VerifyOtpScreen() {
   );
 }
 
-// Kích thước mỗi ô OTP: trừ padding hai bên và khoảng cách giữa 6 ô rồi chia đều
 const INPUT_SIZE = (SCREEN_WIDTH - 48 - 48 - 10 * 5) / 6;
 
 const styles = StyleSheet.create({
