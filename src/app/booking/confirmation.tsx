@@ -201,10 +201,7 @@ export default function BookingConfirmationScreen() {
     setBankPaymentMessage(null);
 
     try {
-      const [year, month, day] = dateParam.split("-").map(Number);
-      const scheduledDate = new Date(
-        Date.UTC(year, month - 1, day, 0, 0, 0, 0),
-      ).toISOString();
+      const scheduledDate = dateParam;
 
       const res = await bookingService.createBooking({
         branchId: branchIdParam,

@@ -45,6 +45,7 @@ type TabType = "all" | "pending" | "completed" | "cancelled";
 
 const statusMap: Record<string, string> = {
   Pending: "pending",
+  Confirmed: "pending",
   CheckedIn: "pending",
   Processing: "pending",
   Completed: "completed",

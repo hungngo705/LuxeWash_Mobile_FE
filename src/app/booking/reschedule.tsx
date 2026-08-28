@@ -49,11 +49,11 @@ interface DayCell {
   isLocked: boolean;
 }
 
-const toUTCMidnight = (date: Date): string => {
-  const utc = new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
-  );
-  return utc.toISOString();
+const toLocalDateString = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 };
 
 const normalizePlate = (value: string): string =>
@@ -272,7 +272,7 @@ export default function RescheduleBookingScreen() {
     try {
       const res = await bookingService.getAvailableSlots(
         selectedBranch.branchId,
-        toUTCMidnight(date),
+        toLocalDateString(date),
         userVehicle.vehicleTypeId,
         serviceIds,
       );
@@ -359,7 +359,7 @@ export default function RescheduleBookingScreen() {
     setSubmitting(true);
     try {
       const res = await bookingService.rescheduleBooking(booking.bookingId, {
-        newScheduledDate: toUTCMidnight(selectedDate),
+        newScheduledDate: toLocalDateString(selectedDate),
         newSlotId: selectedSlot.slotId,
       });
       const message = /^booking rescheduled successfully\.?$/i.test(

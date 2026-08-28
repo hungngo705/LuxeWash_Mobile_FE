@@ -35,12 +35,7 @@ const toLocalDateString = (date: Date): string => {
   return `${y}-${m}-${d}`;
 };
 
-const toUTCMidnight = (date: Date): string => {
-  const utc = new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0),
-  );
-  return utc.toISOString();
-};
+
 
 interface DayCell {
   date: Date | null;
@@ -93,10 +88,10 @@ export default function SelectDateScreen() {
     setSlots([]);
     setSelectedSlot(null);
     try {
-      const isoDate = toUTCMidnight(date);
+      const targetDateStr = toLocalDateString(date);
       const res = await bookingService.getAvailableSlots(
         branchIdParam,
-        isoDate,
+        targetDateStr,
         vehicleTypeIdParam,
         [serviceIdParam],
       );
