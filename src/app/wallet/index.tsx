@@ -55,14 +55,14 @@ export default function WalletScreen() {
   const loadData = useCallback(async () => {
     const [walletRes, txnRes] = await Promise.all([
       walletService.getBalance(),
-      walletService.getTransactions(),
+      walletService.getTransactions(1, 10),
     ]);
 
     if (walletRes.statusCode === 200 && walletRes.data) {
       setWallet(walletRes.data);
     }
     if (txnRes.statusCode === 200 && txnRes.data) {
-      setRecentTxns(txnRes.data.slice(0, 10));
+      setRecentTxns(txnRes.data);
     }
     setLoading(false);
     setRefreshing(false);

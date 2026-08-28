@@ -25,7 +25,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-const PHONE_REGEX = /^(0[3|5|7|8|9])+([0-9]{8})$/; // Regex số điện thoại Việt Nam
+const PHONE_REGEX = /^0[35789][0-9]{8}$/; // Regex số điện thoại Việt Nam
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Regex email cơ bản
 const DAYS_OF_WEEK = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // Nhãn thứ trong tuần cho lịch
 

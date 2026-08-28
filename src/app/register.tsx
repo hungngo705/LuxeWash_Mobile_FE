@@ -28,6 +28,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
 const PASSWORD_MIN_LENGTH = 8; // Độ dài mật khẩu tối thiểu
+const PHONE_REGEX = /^0[35789][0-9]{8}$/; // Regex số điện thoại Việt Nam (khớp backend)
 
 /** Lỗi cho từng trường trong form đăng ký (kèm lỗi trả về từ API). */
 interface FieldErrors {
@@ -81,6 +82,8 @@ export default function RegisterScreen() {
 
     if (!phoneNumber.trim()) {
       errors.phoneNumber = "Vui lòng nhập số điện thoại";
+    } else if (!PHONE_REGEX.test(phoneNumber.trim())) {
+      errors.phoneNumber = "Số điện thoại không hợp lệ (VD: 0912345678)";
     }
 
     if (!email.trim()) {

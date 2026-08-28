@@ -47,7 +47,7 @@ export default function TransactionsScreen() {
 
   const loadTransactions = useCallback(async () => {
     try {
-      const res = await walletService.getTransactions();
+      const res = await walletService.getTransactions(1, 100);
       if (res.statusCode === 200 && res.data) {
         setTransactions(res.data);
       }

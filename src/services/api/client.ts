@@ -3,10 +3,10 @@
  * Handles HTTP requests with fetch, interceptors, and persistent token management
  *
  * Tầng giao tiếp HTTP trung tâm của app: bọc fetch, tự động gắn token,
- * tự refresh token khi hết hạn (401) và lưu token bền vững (AsyncStorage/localStorage).
+ * tự refresh token khi hết hạn (401) và lưu token bền vững (expo-secure-store/localStorage).
  */
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { fetch as expoFetch } from "expo/fetch";
 import { Platform } from "react-native";
 
@@ -15,8 +15,9 @@ const PRODUCTION_BASE_URL = "https://smartwash-be.onrender.com/api/v1";
 // Android emulator -> backend HTTP profile (localhost:5030 on the host):
 // EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:5030/api/v1
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.trim() || PRODUCTION_BASE_URL;
-const ACCESS_TOKEN_KEY = "@luxewash_access_token";
-const REFRESH_TOKEN_KEY = "@luxewash_refresh_token";
+// expo-secure-store key names must match /^[\w.-]+$/ (no "@"), unlike the old AsyncStorage keys.
+const ACCESS_TOKEN_KEY = "luxewash_access_token";
+const REFRESH_TOKEN_KEY = "luxewash_refresh_token";
 
 /** Cấu trúc phản hồi chuẩn từ backend cho mọi request (bọc dữ liệu trong field data) */
 export interface ApiResponse<T = unknown> {
@@ -54,14 +55,20 @@ const webStorage = {
   },
 };
 
-/** Lưu access token và refresh token vào bộ nhớ bền vững (web hoặc mobile) */
+/**
+ * Lưu access token và refresh token vào bộ nhớ bền vững.
+ * Trên mobile dùng expo-secure-store (Keychain trên iOS, Keystore-backed
+ * EncryptedSharedPreferences trên Android) thay vì AsyncStorage, vốn lưu
+ * plaintext và có thể đọc được nếu thiết bị bị root/jailbreak hoặc bị truy
+ * cập vật lý. Web không có Keychain/Keystore nên vẫn dùng localStorage.
+ */
 export const setTokens = async (token: string, refresh: string) => {
   if (isWeb) {
     webStorage.setItem(ACCESS_TOKEN_KEY, token);
     webStorage.setItem(REFRESH_TOKEN_KEY, refresh);
   } else {
-    await AsyncStorage.setItem(ACCESS_TOKEN_KEY, token);
-    await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refresh);
+    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token);
+    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refresh);
   }
 };
 
@@ -71,8 +78,8 @@ export const clearTokens = async () => {
     webStorage.removeItem(ACCESS_TOKEN_KEY);
     webStorage.removeItem(REFRESH_TOKEN_KEY);
   } else {
-    await AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
-    await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+    await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
   }
 };
 
@@ -86,8 +93,8 @@ export const getStoredTokens = async (): Promise<{
     const refreshToken = webStorage.getItem(REFRESH_TOKEN_KEY);
     return { accessToken, refreshToken };
   }
-  const accessToken = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
-  const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+  const accessToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+  const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
   return { accessToken, refreshToken };
 };
 

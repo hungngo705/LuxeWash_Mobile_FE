@@ -50,7 +50,12 @@ export const walletService = {
     );
   },
 
-  getTransactions: async (): Promise<ApiResponse<Transaction[]>> => {
-    return apiClient.get<Transaction[]>("/transactions");
+  getTransactions: async (
+    page = 1,
+    pageSize = 10,
+  ): Promise<ApiResponse<Transaction[]>> => {
+    return apiClient.get<Transaction[]>(
+      `/transactions?page=${page}&pageSize=${pageSize}`,
+    );
   },
 };
