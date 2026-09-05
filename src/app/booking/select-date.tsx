@@ -17,14 +17,15 @@ import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { isSlotInProgress } from "@/utils/format";
 
 const DAYS_OF_WEEK = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
@@ -404,30 +405,50 @@ export default function SelectDateScreen() {
                           {periodSlots.map((slot) => {
                             const isSelected =
                               selectedSlot?.slotId === slot.slotId;
+                            // Lớp bảo vệ phía client: nếu backend trả
+                            // isAvailable=true nhưng slot hiện tại đang diễn ra
+                            // trong khung giờ (slot.StartTime <= now < slot.EndTime)
+                            // thì FE vẫn vô hiệu hoá nút để tránh đặt trùng.
+                            const isRunning = isSlotInProgress(
+                              slot.timeRange,
+                              selectedDate,
+                            );
+                            const isClickable =
+                              slot.isAvailable && !isRunning;
+                            const reason = isRunning
+                              ? "Đang diễn ra"
+                              : slot.reason;
                             return (
                               <TouchableOpacity
                                 key={slot.slotId}
                                 style={[
                                   styles.timeSlot,
-                                  !slot.isAvailable &&
-                                    styles.timeSlotUnavailable,
+                                  !isClickable && styles.timeSlotUnavailable,
                                   isSelected && styles.timeSlotSelected,
                                 ]}
                                 onPress={() =>
-                                  slot.isAvailable && setSelectedSlot(slot)
+                                  isClickable && setSelectedSlot(slot)
                                 }
-                                disabled={!slot.isAvailable}
+                                disabled={!isClickable}
                               >
                                 <Text
                                   style={[
                                     styles.timeSlotText,
-                                    !slot.isAvailable &&
+                                    !isClickable &&
                                       styles.timeSlotTextUnavailable,
                                     isSelected && styles.timeSlotTextSelected,
                                   ]}
                                 >
                                   {slot.timeRange}
                                 </Text>
+                                {!isClickable && reason ? (
+                                  <Text
+                                    style={styles.timeSlotReason}
+                                    numberOfLines={1}
+                                  >
+                                    {reason}
+                                  </Text>
+                                ) : null}
                               </TouchableOpacity>
                             );
                           })}
@@ -643,6 +664,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: LuxeColors.onSurface,
+  },
+  timeSlotReason: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: LuxeColors.onSurfaceVariant,
+    marginTop: 4,
+    textAlign: "center",
   },
   timeSlotTextUnavailable: {
     color: LuxeColors.onSurfaceVariant,

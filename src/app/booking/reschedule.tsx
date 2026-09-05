@@ -20,7 +20,7 @@ import {
     type Service,
     type TimeSlot,
 } from "@/services/api";
-import { formatDate, formatTime } from "@/utils/format";
+import { formatDate, formatTime, isSlotInProgress } from "@/utils/format";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
@@ -747,26 +747,39 @@ export default function RescheduleBookingScreen() {
                                             const isSelected =
                                               selectedSlot?.slotId ===
                                               slot.slotId;
+                                            // Lớp bảo vệ phía client: nếu backend
+                                            // trả isAvailable=true nhưng slot hiện
+                                            // tại đang diễn ra (StartTime <= now <
+                                            // EndTime) thì FE vẫn vô hiệu hoá nút.
+                                            const isRunning = isSlotInProgress(
+                                              slot.timeRange,
+                                              selectedDate,
+                                            );
+                                            const isClickable =
+                                              slot.isAvailable && !isRunning;
+                                            const reason = isRunning
+                                              ? "Đang diễn ra"
+                                              : slot.reason;
                                             return (
                                               <TouchableOpacity
                                                 key={slot.slotId}
                                                 style={[
                                                   styles.timeSlot,
-                                                  !slot.isAvailable &&
+                                                  !isClickable &&
                                                     styles.timeSlotUnavailable,
                                                   isSelected &&
                                                     styles.timeSlotSelected,
                                                 ]}
                                                 onPress={() =>
-                                                  slot.isAvailable &&
+                                                  isClickable &&
                                                   setSelectedSlot(slot)
                                                 }
-                                                disabled={!slot.isAvailable}
+                                                disabled={!isClickable}
                                               >
                                                 <Text
                                                   style={[
                                                     styles.timeSlotText,
-                                                    !slot.isAvailable &&
+                                                    !isClickable &&
                                                       styles.timeSlotTextUnavailable,
                                                     isSelected &&
                                                       styles.timeSlotTextSelected,
@@ -774,6 +787,16 @@ export default function RescheduleBookingScreen() {
                                                 >
                                                   {slot.timeRange}
                                                 </Text>
+                                                {!isClickable && reason ? (
+                                                  <Text
+                                                    style={
+                                                      styles.timeSlotReason
+                                                    }
+                                                    numberOfLines={1}
+                                                  >
+                                                    {reason}
+                                                  </Text>
+                                                ) : null}
                                               </TouchableOpacity>
                                             );
                                           })}
@@ -1103,6 +1126,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     color: LuxeColors.onSurface,
+  },
+  timeSlotReason: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: LuxeColors.onSurfaceVariant,
+    marginTop: 4,
+    textAlign: "center",
   },
   timeSlotTextUnavailable: {
     color: LuxeColors.onSurfaceVariant,
