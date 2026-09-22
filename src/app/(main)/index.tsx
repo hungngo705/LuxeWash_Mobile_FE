@@ -21,7 +21,7 @@ import { LuxeColors, LuxeSpacing, LuxeBorderRadius, LuxeShadows, MembershipConfi
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { bookingService } from '@/services/api';
-import { loyaltyService, Voucher } from '@/services/api/loyaltyService';
+import { formatVoucherDiscount, loyaltyService, Voucher } from '@/services/api/loyaltyService';
 
 const MOCK_SERVICES = [
   { id: 'svc_001', name: 'Rửa xe tiêu chuẩn', category: 'basic', price: 150000 },
@@ -352,12 +352,12 @@ export default function HomeScreen() {
                   >
                     <View style={styles.promoBadge}>
                       <Text style={styles.promoBadgeText}>
-                        -{voucher.discountAmount.toLocaleString('vi-VN')}đ
+                        -{formatVoucherDiscount(voucher)}
                       </Text>
                     </View>
                     <Text style={styles.promoTitle}>{voucher.code}</Text>
                     <Text style={styles.promoDesc}>
-                      Giảm {voucher.discountAmount.toLocaleString('vi-VN')}đ cho đơn từ {voucher.minOrderAmount.toLocaleString('vi-VN')}đ
+                      Giảm {formatVoucherDiscount(voucher)} cho đơn từ {voucher.minOrderAmount.toLocaleString('vi-VN')}đ
                     </Text>
                     <View style={styles.promoCodeWrap}>
                       <Text style={styles.promoCode}>{voucher.code}</Text>

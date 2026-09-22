@@ -8,7 +8,7 @@ import {
   LuxeShadows,
 } from "@/constants/luxeTheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { bookingService, loyaltyService, type Voucher } from "@/services/api";
+import { bookingService, calculateVoucherDiscount, formatVoucherDiscount, loyaltyService, type Voucher } from "@/services/api";
 import { branchHistoryService } from "@/services/branchHistoryService";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -66,7 +66,7 @@ export default function BookingConfirmationScreen() {
   const membershipDiscountAmount = Math.round(subtotal * membershipDiscountParam);
   const priceAfterMembership = subtotal - membershipDiscountAmount;
   const voucherDiscountAmount = selectedVoucher
-    ? Math.min(selectedVoucher.discountAmount, priceAfterMembership)
+    ? calculateVoucherDiscount(selectedVoucher, priceAfterMembership)
     : 0;
   const finalPrice = Math.max(0, priceAfterMembership - voucherDiscountAmount);
 
@@ -450,7 +450,7 @@ export default function BookingConfirmationScreen() {
                 <Text style={styles.voucherSelectTitle}>Voucher giảm giá</Text>
                 {selectedVoucher ? (
                   <Text style={styles.voucherSelectValue}>
-                    -{selectedVoucher.discountAmount.toLocaleString("vi-VN")}đ
+                    -{formatVoucherDiscount(selectedVoucher)}
                     {" · "}
                     {selectedVoucher.code}
                   </Text>
