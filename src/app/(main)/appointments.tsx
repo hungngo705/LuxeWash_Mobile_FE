@@ -45,13 +45,21 @@ type TabType = "all" | "pending" | "completed" | "cancelled";
 
 const statusMap: Record<string, string> = {
   Pending: "pending",
+  Confirmed: "pending",
   CheckedIn: "pending",
   Processing: "pending",
   Completed: "completed",
   Cancelled: "cancelled",
   CancelledBySystem: "cancelled",
   NoShow: "cancelled",
+  "No-show": "cancelled",
   Delayed: "pending",
+};
+
+const STATUS_SORT_PRIORITY: Record<string, number> = {
+  pending: 0,
+  completed: 1,
+  cancelled: 1,
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -212,9 +220,22 @@ export default function AppointmentsScreen() {
     }
 
     result.sort((a, b) => {
+      const mappedA = statusMap[a.status] || a.status;
+      const mappedB = statusMap[b.status] || b.status;
+      const priorityA = STATUS_SORT_PRIORITY[mappedA] ?? Number.MAX_SAFE_INTEGER;
+      const priorityB = STATUS_SORT_PRIORITY[mappedB] ?? Number.MAX_SAFE_INTEGER;
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
       const dateA = a.scheduledTime ? new Date(a.scheduledTime).getTime() : 0;
       const dateB = b.scheduledTime ? new Date(b.scheduledTime).getTime() : 0;
-      return dateB - dateA;
+      if (dateA !== dateB) {
+        return dateB - dateA;
+      }
+
+      return b.bookingId - a.bookingId;
     });
 
     return result;

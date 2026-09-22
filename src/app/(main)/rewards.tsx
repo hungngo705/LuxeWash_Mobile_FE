@@ -10,7 +10,7 @@ import {
   MembershipConfig,
 } from "@/constants/luxeTheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { loyaltyService, type Tier, type Voucher } from "@/services/api";
+import { formatVoucherDiscount, loyaltyService, type Tier, type Voucher } from "@/services/api";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, type RelativePathString } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -31,10 +31,6 @@ export default function RewardsScreen() {
   const membershipInfo = user
     ? MembershipConfig[user.membershipTier]
     : MembershipConfig.standard;
-
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat("vi-VN").format(amount);
-  };
 
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
@@ -179,7 +175,7 @@ export default function RewardsScreen() {
                   <View style={styles.rewardContent}>
                     <Text style={styles.rewardTitle}>{voucher.code}</Text>
                     <Text style={styles.rewardDesc}>
-                      Giảm {formatCurrency(voucher.discountAmount)}đ
+                      Giảm {formatVoucherDiscount(voucher)}
                     </Text>
                   </View>
                   <View style={styles.rewardAction}>

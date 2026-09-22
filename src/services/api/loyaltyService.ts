@@ -36,7 +36,9 @@ export type VoucherType = 0 | 1;
 export interface Voucher {
   voucherId: number;
   code: string; // Mã voucher
-  discountAmount: number; // Số tiền giảm
+  discountAmount: number; // Số tiền giảm cố định (0 với voucher giảm theo %)
+  discountPercent: number | null; // Phần trăm giảm, ví dụ voucher đền bù = 20
+  maxDiscountAmount: number | null; // Mức giảm tối đa cho voucher phần trăm
   pointsRequired: number; // Số điểm cần để đổi
   expiryDate: string; // Ngày hết hạn của voucher đã nhận
   campaignExpiryDate: string; // Ngày kết thúc chiến dịch
@@ -63,6 +65,8 @@ export type RedeemableVoucher = Pick<
   | 'voucherId'
   | 'code'
   | 'discountAmount'
+  | 'discountPercent'
+  | 'maxDiscountAmount'
   | 'pointsRequired'
   | 'expiryDate'
   | 'minOrderAmount'
@@ -75,6 +79,31 @@ export type RedeemableVoucher = Pick<
   | 'validStartTime'
   | 'validEndTime'
 >;
+
+type VoucherDiscount = Pick<Voucher, 'discountAmount' | 'discountPercent' | 'maxDiscountAmount'>;
+
+/** Nhãn mức giảm đúng cho cả voucher số tiền và voucher phần trăm. */
+export function formatVoucherDiscount(voucher: VoucherDiscount): string {
+  const percent = Number(voucher.discountPercent ?? 0);
+  if (percent > 0) {
+    return `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(percent)}%`;
+  }
+  return `${new Intl.NumberFormat('vi-VN').format(Number(voucher.discountAmount) || 0)}đ`;
+}
+
+/** Tính số tiền giảm xem trước theo cùng quy tắc làm tròn/cap của backend. */
+export function calculateVoucherDiscount(voucher: VoucherDiscount, orderAmount: number): number {
+  const safeOrderAmount = Math.max(0, Number(orderAmount) || 0);
+  const percent = Number(voucher.discountPercent ?? 0);
+  if (percent > 0) {
+    const percentageDiscount = Math.round(safeOrderAmount * percent / 100);
+    const maxDiscount = Number(voucher.maxDiscountAmount ?? 0);
+    return Math.min(safeOrderAmount, maxDiscount > 0
+      ? Math.min(percentageDiscount, maxDiscount)
+      : percentageDiscount);
+  }
+  return Math.min(safeOrderAmount, Math.max(0, Number(voucher.discountAmount) || 0));
+}
 
 /** Nhãn hiển thị cho từng loại voucher */
 export const VOUCHER_TYPE_LABELS: Record<VoucherType, string> = {

@@ -11,7 +11,7 @@ import {
   translateTierName,
 } from '@/constants/luxeTheme';
 import { useAuth } from '@/contexts/AuthContext';
-import { loyaltyService, CAMPAIGN_BADGE_CONFIG, type RedeemableVoucher, type Voucher, type VoucherCampaignType } from '@/services/api';
+import { loyaltyService, CAMPAIGN_BADGE_CONFIG, formatVoucherDiscount, type RedeemableVoucher, type Voucher, type VoucherCampaignType } from '@/services/api';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -114,7 +114,7 @@ function VoucherCard({
         {/* LEFT: Discount hero panel */}
         <View style={[styles.discountPanel, { backgroundColor: cfg.color + '18' }]}>
           <Text style={[styles.discountAmount, { color: cfg.color }]}>
-            -{formatCurrency(voucher.discountAmount)}đ
+            -{formatVoucherDiscount(voucher)}
           </Text>
           <Text style={[styles.discountLabel, { color: cfg.color + 'BB' }]}>GIẢM</Text>
           {voucher.pointsRequired > 0 && (
@@ -314,7 +314,7 @@ function RedeemModal({
                       </View>
                       <View style={styles.redeemItemBottom}>
                         <Text style={[styles.redeemItemDiscount, { color: cfg.color }]}>
-                          -{formatCurrency(v.discountAmount)}đ
+                          -{formatVoucherDiscount(v)}
                         </Text>
                         {v.minOrderAmount > 0 && (
                           <Text style={styles.redeemItemMinOrder}>

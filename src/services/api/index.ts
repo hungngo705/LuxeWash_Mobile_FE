@@ -38,7 +38,7 @@ export {
     getStoredTokens, setTokens, setSessionExpiredHandler, clearSessionExpiredHandler
 } from "./client";
 // Service & kiểu dữ liệu khách hàng thân thiết (hạng, voucher)
-export { loyaltyService } from "./loyaltyService";
+export { calculateVoucherDiscount, formatVoucherDiscount, loyaltyService } from "./loyaltyService";
 export {
     PointHistoryItem,
     RedeemableVoucher,
