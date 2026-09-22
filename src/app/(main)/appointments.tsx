@@ -319,6 +319,29 @@ export default function AppointmentsScreen() {
           style={[styles.cardAccentBar, { backgroundColor: statusStyle.dot }]}
         />
         <View style={styles.cardBody}>
+          {item.hasPendingIncidentAction && (
+            <TouchableOpacity
+              style={styles.relocationBanner}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              onPress={(event) => {
+                event.stopPropagation();
+                router.push({
+                  pathname: "/booking/incident" as any,
+                  params: { bookingId: String(item.bookingId) },
+                });
+              }}
+            >
+              <View style={styles.relocationBannerIcon}>
+                <Feather name="alert-triangle" size={16} color="#DC2626" />
+              </View>
+              <View style={styles.relocationBannerContent}>
+                <Text style={styles.relocationBannerTitle}>Lịch bị ảnh hưởng bởi sự cố</Text>
+                <Text style={styles.relocationBannerSubtitle}>Chạm để chọn hủy hoặc chuyển chi nhánh</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#DC2626" />
+            </TouchableOpacity>
+          )}
           {!!overloadSuggestion && (
             <TouchableOpacity
               style={styles.relocationBanner}

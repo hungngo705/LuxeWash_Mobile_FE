@@ -24,6 +24,7 @@ export default function BookingLayout() {
       <Stack.Screen name="success" />
       <Stack.Screen name="payment" />
       <Stack.Screen name="reschedule" />
+      <Stack.Screen name="incident" />
       <Stack.Screen name="[id]" />
     </Stack>
   );

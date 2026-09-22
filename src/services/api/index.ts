@@ -14,6 +14,8 @@ export type {
 } from "./authService";
 // Service & kiểu dữ liệu đặt lịch (dịch vụ, slot, thanh toán, dời chi nhánh khi quá tải)
 export { bookingService } from "./bookingService";
+export { incidentService } from "./incidentService";
+export type { IncidentOptions, IncidentAlternative, IncidentAvailableSlot, IncidentAvailabilityContext, IncidentRefundPreview, IncidentDecisionResult } from "./incidentService";
 export type {
     BookingDetail, BookingDetailResponse, BookingDetailVehicle, BookingRelocationProposal, BookingRequest,
     BookingPaymentLinkRequest, BookingPaymentLinkResponse, BookingPaymentStatus,

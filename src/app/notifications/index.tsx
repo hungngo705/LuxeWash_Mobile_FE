@@ -7,7 +7,7 @@ import {
 } from "@/constants/luxeTheme";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useOverloadSuggestions } from "@/contexts/OverloadSuggestionContext";
-import type { UserNotification } from "@/services/api";
+import { incidentService, type UserNotification } from "@/services/api";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -27,6 +27,7 @@ const TYPE_STYLE: Record<
   { icon: React.ComponentProps<typeof Feather>["name"]; color: string; background: string }
 > = {
   booking: { icon: "calendar", color: "#087EA4", background: "#E0F2FE" },
+  incidentcase: { icon: "alert-triangle", color: "#B91C1C", background: "#FEE2E2" },
   overload_suggestion: { icon: "alert-triangle", color: "#B91C1C", background: "#FEE2E2" },
   vehicle: { icon: "truck", color: "#2E7D32", background: "#E8F5E9" },
   voucher: { icon: "gift", color: "#C2410C", background: "#FFF7ED" },
@@ -66,7 +67,17 @@ export default function NotificationsScreen() {
     await markAsRead(notification.id).catch(() => undefined);
 
     const type = notification.type.toLowerCase();
-    if (type === "overload_suggestion" && notification.referenceId) {
+    if (type === "incidentcase" && notification.referenceId) {
+      const caseId = Number(notification.referenceId);
+      const bookingId = Number.isInteger(caseId) && caseId > 0
+        ? await incidentService.findPendingBookingByCaseId(caseId).catch(() => null)
+        : null;
+      if (bookingId) {
+        router.push({ pathname: "/booking/incident" as any, params: { bookingId: String(bookingId) } });
+      } else {
+        router.push("/(main)/appointments" as any);
+      }
+    } else if (type === "overload_suggestion" && notification.referenceId) {
       const bookingId = Number(notification.referenceId);
       if (Number.isInteger(bookingId) && bookingId > 0) {
         await openSuggestionForBooking(bookingId);

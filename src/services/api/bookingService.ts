@@ -173,6 +173,8 @@ export interface BookingDetailResponse {
   relocation?: BookingRelocationProposal | null;
   isWaitAccepted?: boolean;
   hasPendingOverloadSuggestion?: boolean;
+  hasPendingIncidentAction?: boolean;
+  incidentCaseId?: number | null;
   checkInImageUrl?: string | null;
   checkOutImageUrl?: string | null;
 }
@@ -253,6 +255,8 @@ export interface MyBookingItem {
   hasPendingRelocation?: boolean;
   relocation?: BookingRelocationProposal | null;
   hasPendingOverloadSuggestion?: boolean;
+  hasPendingIncidentAction?: boolean;
+  incidentCaseId?: number | null;
   checkInImageUrl?: string | null;
   checkOutImageUrl?: string | null;
 }
