@@ -23,7 +23,7 @@ export interface OverloadNotificationPayload {
 
 /** Đích điều hướng khi khách bấm một push notification thông thường. */
 export interface UserNotificationTarget {
-  type: "Booking" | "Vehicle" | "Voucher";
+  type: "Booking" | "IncidentCase" | "Vehicle" | "Voucher";
   referenceId: string | null;
 }
 
@@ -134,11 +134,13 @@ export function parseUserNotificationTarget(
   const type =
     rawType === "booking"
       ? "Booking"
-      : rawType === "vehicle"
-        ? "Vehicle"
-        : rawType === "voucher"
-          ? "Voucher"
-          : null;
+      : rawType === "incidentcase"
+        ? "IncidentCase"
+        : rawType === "vehicle"
+          ? "Vehicle"
+          : rawType === "voucher"
+            ? "Voucher"
+            : null;
   if (!type) return null;
 
   const value = data.referenceId ?? data.ReferenceId;

@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   ApiError,
   bookingService,
+  incidentService,
   type MyBookingItem,
   type OverloadDecision,
   type OverloadSuggestion,
@@ -356,6 +357,16 @@ export function OverloadSuggestionProvider({ children }: { children: ReactNode }
         const target = parseUserNotificationTarget(data);
         if (target?.type === "Booking" && target.referenceId) {
           router.push(`/booking/${target.referenceId}` as never);
+        } else if (target?.type === "IncidentCase" && target.referenceId) {
+          const caseId = Number(target.referenceId);
+          const bookingId = Number.isInteger(caseId) && caseId > 0
+            ? await incidentService.findPendingBookingByCaseId(caseId).catch(() => null)
+            : null;
+          if (bookingId) {
+            router.push({ pathname: "/booking/incident" as never, params: { bookingId: String(bookingId) } });
+          } else {
+            router.push("/(main)/appointments" as never);
+          }
         } else if (target?.type === "Vehicle") {
           router.push("/vehicles" as never);
         } else if (target?.type === "Voucher") {

@@ -15,7 +15,9 @@ import {
     ApiError,
     branchService,
     bookingService,
+    incidentService,
     type BookingDetailResponse,
+    type IncidentOptions,
 } from "@/services/api";
 import {
     formatDate,
@@ -28,8 +30,8 @@ import {
     PAYMENT_STATUS_LABEL,
 } from "@/utils/bookingPayment";
 import { Feather } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
     Image,
@@ -115,6 +117,8 @@ export default function BookingDetailScreen() {
     const [error, setError] = useState<string | null>(null);
     const [cancelling, setCancelling] = useState(false);
     const [branchAddress, setBranchAddress] = useState<string | null>(null);
+    const [incidentCase, setIncidentCase] = useState<IncidentOptions | null>(null);
+    const [incidentLookupError, setIncidentLookupError] = useState(false);
 
     const loadBooking = useCallback(async () => {
         if (!id) return;
@@ -165,6 +169,10 @@ export default function BookingDetailScreen() {
                     hasPendingOverloadSuggestion:
                         nextBooking.hasPendingOverloadSuggestion ??
                         listedBooking?.hasPendingOverloadSuggestion,
+                    hasPendingIncidentAction:
+                        nextBooking.hasPendingIncidentAction ?? listedBooking?.hasPendingIncidentAction,
+                    incidentCaseId:
+                        nextBooking.incidentCaseId ?? listedBooking?.incidentCaseId,
                 };
 
                 if (paymentResponse?.data?.paymentStatus) {
@@ -192,9 +200,19 @@ export default function BookingDetailScreen() {
         }
     }, [id]);
 
-    useEffect(() => {
-        loadBooking();
-    }, [loadBooking]);
+    useFocusEffect(useCallback(() => {
+        let active = true;
+        void loadBooking();
+        setIncidentCase(null);
+        setIncidentLookupError(false);
+        const bookingId = Number(id);
+        if (Number.isInteger(bookingId) && bookingId > 0) {
+            void incidentService.getOptions(bookingId)
+                .then((result) => { if (active) setIncidentCase(result); })
+                .catch(() => { if (active) setIncidentLookupError(true); });
+        }
+        return () => { active = false; };
+    }, [id, loadBooking]));
 
     const handleCancel = () => {
         confirm({
@@ -249,8 +267,13 @@ export default function BookingDetailScreen() {
     );
     const vehicleImage = userVehicle?.imageUrl;
 
-    const isCancellable = booking?.status === "Pending";
-    const isReschedulable = booking?.status === "Pending" || booking?.status === "Confirmed";
+    const hasPendingIncidentAction = Boolean(
+        booking?.hasPendingIncidentAction ||
+        booking?.incidentCaseId ||
+        incidentCase?.caseStatus === "AwaitingCustomer",
+    );
+    const isCancellable = booking?.status === "Pending" && !hasPendingIncidentAction;
+    const isReschedulable = (booking?.status === "Pending" || booking?.status === "Confirmed") && !hasPendingIncidentAction;
     const hasActions = isCancellable || isReschedulable;
 
     const scheduledDate = booking?.scheduledTime ? formatDate(booking.scheduledTime) : null;
@@ -363,6 +386,43 @@ export default function BookingDetailScreen() {
                                     )}
                                 </View>
                             </View>
+                        )}
+
+                        {hasPendingIncidentAction && (
+                            <TouchableOpacity
+                                style={styles.relocationCard}
+                                onPress={() => router.push({
+                                    pathname: "/booking/incident" as any,
+                                    params: { bookingId: String(booking.bookingId) },
+                                })}
+                                accessibilityRole="button"
+                            >
+                                <View style={styles.relocationIconWrap}>
+                                    <Feather name="alert-triangle" size={20} color="#B45309" />
+                                </View>
+                                <View style={styles.relocationContent}>
+                                    <Text style={styles.relocationTitle}>Lịch hẹn bị ảnh hưởng bởi sự cố</Text>
+                                    <Text style={styles.relocationText}>
+                                        Chỉ xử lý hủy hoặc chuyển chi nhánh tại màn hình sự cố. Cả hai lựa chọn đều được nhận voucher giảm 20%.
+                                    </Text>
+                                    <Text style={styles.relocationMeta}>Bấm để xem lựa chọn và thời hạn phản hồi →</Text>
+                                </View>
+                            </TouchableOpacity>
+                        )}
+                        {incidentLookupError && !booking.hasPendingIncidentAction && (booking.status === "Pending" || booking.status === "Confirmed") && (
+                            <TouchableOpacity
+                                style={styles.relocationCard}
+                                onPress={() => router.push({
+                                    pathname: "/booking/incident" as any,
+                                    params: { bookingId: String(booking.bookingId) },
+                                })}
+                                accessibilityRole="button"
+                            >
+                                <View style={styles.relocationContent}>
+                                    <Text style={styles.relocationTitle}>Chưa kiểm tra được thông tin sự cố</Text>
+                                    <Text style={styles.relocationText}>Bấm để thử lại, nhất là khi bạn vừa nhận thông báo về lịch hẹn này.</Text>
+                                </View>
+                            </TouchableOpacity>
                         )}
 
                         {/* Branch Card */}
