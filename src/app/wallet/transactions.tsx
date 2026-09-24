@@ -18,10 +18,11 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { LuxeColors, LuxeSpacing, LuxeBorderRadius, LuxeShadows } from '@/constants/luxeTheme';
 import { walletService, type Transaction } from '@/services/api';
+import { formatCoins } from '@/utils/format';
 
 const transactionTypeConfig: Record<string, { label: string; color: string; icon: string; borderColor: string }> = {
-  TopUp:       { label: 'Nạp tiền',          color: '#10b981', icon: 'plus-circle',   borderColor: '#10b981' },
-  Refund:      { label: 'Hoàn điểm',         color: '#10b981', icon: 'rotate-ccw',    borderColor: '#10b981' },
+  TopUp:       { label: 'Nạp coin',          color: '#10b981', icon: 'plus-circle',   borderColor: '#10b981' },
+  Refund:      { label: 'Hoàn coin',         color: '#10b981', icon: 'rotate-ccw',    borderColor: '#10b981' },
   Booking:     { label: 'Thanh toán đơn hàng', color: '#ef4444', icon: 'truck',         borderColor: '#ef4444' },
   Upsell:      { label: 'Phụ phí',           color: '#f97316', icon: 'plus-square',   borderColor: '#f97316' },
   PointReward: { label: 'Tích điểm',         color: '#f59e0b', icon: 'star',          borderColor: '#f59e0b' },
@@ -32,10 +33,6 @@ const statusConfig: Record<string, { label: string; bg: string; text: string }> 
   Completed: { label: 'Thành công', bg: '#dcfce7', text: '#15803d' },
   Pending:   { label: 'Đang xử lý', bg: '#fef3c7', text: '#92400e' },
   Failed:    { label: 'Thất bại',    bg: '#fee2e2', text: '#dc2626' },
-};
-
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(Math.abs(amount));
 };
 
 export default function TransactionsScreen() {
@@ -108,7 +105,7 @@ export default function TransactionsScreen() {
           <Feather name="inbox" size={48} color={LuxeColors.outlineVariant} />
           <Text style={styles.emptyTitle}>Chưa có giao dịch</Text>
           <Text style={styles.emptySubtitle}>
-            Các giao dịch nạp tiền, thanh toán và hoàn tiền sẽ hiển thị ở đây
+            Các giao dịch nạp coin, thanh toán và hoàn coin sẽ hiển thị ở đây
           </Text>
         </View>
       ) : (
@@ -158,7 +155,7 @@ export default function TransactionsScreen() {
                   <View style={styles.amountRow}>
                     <Feather name={arrowIcon as any} size={14} color={amountColor} />
                     <Text style={[styles.txnAmount, { color: amountColor }]}>
-                      {`${positive ? '+' : '-'} ${formatCurrency(Math.abs(txn.amount))}`}
+                      {`${positive ? '+' : '-'} ${formatCoins(Math.abs(txn.amount))}`}
                     </Text>
                   </View>
                 </View>

@@ -3,25 +3,23 @@
  * Bold professional redesign with gradient balance card and clean solid cards
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { LuxeColors, LuxeSpacing, LuxeBorderRadius, LuxeShadows } from '@/constants/luxeTheme';
+import { LuxeColors, LuxeBorderRadius, LuxeShadows } from '@/constants/luxeTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { walletService, type WalletBalance, type Transaction } from '@/services/api';
-import { vndToPoints, VND_PER_POINT } from '@/utils/format';
+import { formatCoins, VND_PER_COIN, vndToCoins } from '@/utils/format';
 import { Header } from '@/components/ui/Header';
 
-const POINTS_LABEL = 'điểm';
-
 const transactionTypeLabel: Record<string, string> = {
-  TopUp: 'Nạp tiền',
+  TopUp: 'Nạp coin',
   Booking: 'Thanh toán đơn hàng',
-  Refund: 'Hoàn điểm',
+  Refund: 'Hoàn coin',
   Upsell: 'Phụ phí',
   PointReward: 'Tích điểm',
   PointRedeem: 'Đổi điểm',
@@ -45,7 +43,7 @@ const statusConfig: Record<string, { label: string; bg: string; text: string }> 
 export default function WalletScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { walletBalance, refreshWallet } = useAuth();
+  const { walletBalance } = useAuth();
 
   const [wallet, setWallet] = useState<WalletBalance | null>(null);
   const [recentTxns, setRecentTxns] = useState<Transaction[]>([]);
@@ -85,7 +83,7 @@ export default function WalletScreen() {
   };
 
   const primaryBalance = wallet?.balance ?? walletBalance ?? 0;
-  const mainPoints = wallet?.totalPoints || Math.floor(primaryBalance / VND_PER_POINT);
+  const coinBalance = vndToCoins(primaryBalance);
 
   if (loading) {
     return (
@@ -114,20 +112,20 @@ export default function WalletScreen() {
         <View style={styles.balanceCard}>
           <View style={styles.balanceTopRow}>
             <View>
-              <Text style={styles.balanceLabel}>Số dư điểm</Text>
-              <Text style={styles.balancePoints}>{mainPoints.toLocaleString('vi-VN')}</Text>
-              <Text style={styles.balanceUnit}>{POINTS_LABEL}</Text>
+              <Text style={styles.balanceLabel}>Số dư coin</Text>
+              <Text style={styles.balancePoints}>{coinBalance.toLocaleString('en-US')}</Text>
+              <Text style={styles.balanceUnit}>coin</Text>
             </View>
           </View>
           <View style={styles.balanceDivider} />
           <View style={styles.balanceBottomRow}>
-            <Text style={styles.balanceSubtitle}>1 điểm = {VND_PER_POINT.toLocaleString('vi-VN')}đ</Text>
+            <Text style={styles.balanceSubtitle}>1 coin = {VND_PER_COIN.toLocaleString('en-US')} VNĐ</Text>
             <TouchableOpacity
               style={styles.topUpBtn}
               onPress={() => router.push('/wallet/top-up')}
             >
               <Feather name="plus" size={14} color={LuxeColors.primary} />
-              <Text style={styles.topUpBtnText}>Nạp điểm</Text>
+              <Text style={styles.topUpBtnText}>Nạp coin</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -138,7 +136,7 @@ export default function WalletScreen() {
             <View style={[styles.actionIconWrap, { backgroundColor: '#10b98118' }]}>
               <Feather name="plus-circle" size={22} color="#10b981" />
             </View>
-            <Text style={styles.actionLabel}>Nạp điểm</Text>
+            <Text style={styles.actionLabel}>Nạp coin</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/wallet/transactions')}>
             <View style={[styles.actionIconWrap, { backgroundColor: LuxeColors.primaryContainer + '18' }]}>
@@ -165,7 +163,7 @@ export default function WalletScreen() {
                 <Feather name="inbox" size={40} color={LuxeColors.outlineVariant} />
               </View>
               <Text style={styles.emptyTitle}>Chưa có giao dịch nào</Text>
-              <Text style={styles.emptySubtitle}>Nạp điểm để bắt đầu sử dụng</Text>
+              <Text style={styles.emptySubtitle}>Nạp coin để bắt đầu sử dụng</Text>
             </View>
           ) : (
             <View style={styles.txnList}>
@@ -190,8 +188,8 @@ export default function WalletScreen() {
                       </View>
                     </View>
                     <View style={styles.txnRight}>
-                      <Text style={[styles.txnPoints, { color: amountColor }]}>
-                        {isPositive ? '+' : '-'}{Math.abs(txn.amount).toLocaleString('vi-VN')}
+                      <Text style={[styles.txnAmount, { color: amountColor }]}>
+                        {isPositive ? '+' : '-'}{formatCoins(Math.abs(txn.amount))}
                       </Text>
                       <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
                         <Text style={[styles.statusText, { color: status.text }]}>{status.label}</Text>
@@ -332,8 +330,7 @@ const styles = StyleSheet.create({
   txnLabel: { fontSize: 13, fontWeight: '600', color: LuxeColors.onSurface },
   txnDate: { fontSize: 11, color: LuxeColors.onSurfaceVariant, marginTop: 2 },
   txnRight: { alignItems: 'flex-end', gap: 4 },
-  txnPoints: { fontSize: 14, fontWeight: '800' },
-  txnUnit: { fontSize: 11, color: LuxeColors.onSurfaceVariant },
+  txnAmount: { fontSize: 14, fontWeight: '800' },
   statusBadge: {
     borderRadius: 6,
     paddingHorizontal: 6,
