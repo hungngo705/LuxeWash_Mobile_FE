@@ -11,6 +11,7 @@ import {
 } from "@/constants/luxeTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { walletService } from "@/services/api";
+import { coinsToVnd, VND_PER_COIN } from "@/utils/format";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, type RelativePathString } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -26,21 +27,16 @@ import {
 import { openBrowserAsync } from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const PRESET_AMOUNTS = [50000, 100000, 200000, 500000];
+const PRESET_COINS = [50, 100, 200, 500];
 
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(amount);
-};
+const formatCoin = (coins: number): string => `${coins.toLocaleString("en-US")} coin`;
 
 export default function TopUpScreen() {
   const router = useRouter();
   const { refreshWallet } = useAuth();
 
-  const [amount, setAmount] = useState("");
-  const [selectedPreset, setSelectedPreset] = useState<number | null>(100000);
+  const [amount, setAmount] = useState("100");
+  const [selectedPreset, setSelectedPreset] = useState<number | null>(100);
   const [isLoading, setIsLoading] = useState(false);
   const [polling, setPolling] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<
@@ -60,7 +56,8 @@ export default function TopUpScreen() {
     setAmount(numeric);
   };
 
-  const numericAmount = parseInt(amount, 10) || 0;
+  const numericCoins = parseInt(amount, 10) || 0;
+  const backendAmount = coinsToVnd(numericCoins);
 
   const getReturnUrl = (): string => {
     return "luxewash://wallet/top-up";
@@ -97,8 +94,8 @@ export default function TopUpScreen() {
   };
 
   const handleTopUp = async () => {
-    if (numericAmount < 10000) {
-      alert("Số tiền nạp tối thiểu là 10.000đ");
+    if (numericCoins < 10) {
+      alert("Số coin nạp tối thiểu là 10 coin");
       return;
     }
 
@@ -107,7 +104,7 @@ export default function TopUpScreen() {
 
     try {
       const res = await walletService.topUp({
-        amount: numericAmount,
+        amount: backendAmount,
         returnUrl: getReturnUrl(),
         cancelUrl: getCancelUrl(),
       });
@@ -157,7 +154,7 @@ export default function TopUpScreen() {
         >
           <Feather name="check-circle" size={40} color="#10b981" />
         </View>
-        <Text style={styles.successText}>Nạp tiền thành công!</Text>
+        <Text style={styles.successText}>Nạp coin thành công!</Text>
         <TouchableOpacity
           style={styles.doneBtn}
           onPress={() => {
@@ -177,7 +174,7 @@ export default function TopUpScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Feather name="chevron-left" size={24} color={LuxeColors.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nạp tiền</Text>
+        <Text style={styles.headerTitle}>Nạp coin</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -186,9 +183,9 @@ export default function TopUpScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.section}>
-          <Text style={styles.label}>Chọn số tiền nạp</Text>
+          <Text style={styles.label}>Chọn số coin cần nạp</Text>
           <View style={styles.presetsGrid}>
-            {PRESET_AMOUNTS.map((preset) => (
+            {PRESET_COINS.map((preset) => (
               <TouchableOpacity
                 key={preset}
                 style={[
@@ -203,7 +200,7 @@ export default function TopUpScreen() {
                     selectedPreset === preset && styles.presetTextSelected,
                   ]}
                 >
-                  {formatCurrency(preset)}
+                  {formatCoin(preset)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -211,9 +208,8 @@ export default function TopUpScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Hoặc nhập số tiền khác</Text>
+          <Text style={styles.label}>Hoặc nhập số coin khác</Text>
           <View style={styles.customInputWrapper}>
-            <Text style={styles.currencySymbol}>đ</Text>
             <TextInput
               style={styles.customInput}
               value={amount}
@@ -223,10 +219,11 @@ export default function TopUpScreen() {
               keyboardType="numeric"
               maxLength={10}
             />
+            <Text style={styles.currencySymbol}>coin</Text>
           </View>
-          {numericAmount > 0 && numericAmount < 10000 && (
+          {numericCoins > 0 && numericCoins < 10 && (
             <Text style={styles.minWarning}>
-              Số tiền nạp tối thiểu: 10.000đ
+              Số coin nạp tối thiểu: 10 coin
             </Text>
           )}
         </View>
@@ -237,7 +234,10 @@ export default function TopUpScreen() {
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>Thông tin</Text>
           <Text style={styles.infoText}>
-            • Số dư sẽ được cập nhật ngay sau khi thanh toán thành công.
+            • 1 coin = {VND_PER_COIN.toLocaleString("en-US")} VNĐ.
+          </Text>
+          <Text style={styles.infoText}>
+            • Số dư coin sẽ được cập nhật sau khi thanh toán thành công.
           </Text>
           <Text style={styles.infoText}>
             • Thanh toán qua PayOS - an toàn và bảo mật.
@@ -250,17 +250,17 @@ export default function TopUpScreen() {
           <TouchableOpacity
             style={[
               styles.submitBtn,
-              numericAmount < 10000 && styles.submitBtnDisabled,
+              numericCoins < 10 && styles.submitBtnDisabled,
             ]}
             onPress={handleTopUp}
-            disabled={isLoading || numericAmount < 10000}
+            disabled={isLoading || numericCoins < 10}
           >
             {isLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={styles.submitBtnText}>
                 Thanh toán{" "}
-                {numericAmount > 0 ? formatCurrency(numericAmount) : ""}
+                {numericCoins > 0 ? formatCoin(numericCoins) : ""}
               </Text>
             )}
           </TouchableOpacity>

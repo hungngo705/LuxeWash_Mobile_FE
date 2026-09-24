@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { bookingService } from '@/services/api';
 import { formatVoucherDiscount, loyaltyService, Voucher } from '@/services/api/loyaltyService';
+import { vndToCoins } from '@/utils/format';
 
 const MOCK_SERVICES = [
   { id: 'svc_001', name: 'Rửa xe tiêu chuẩn', category: 'basic', price: 150000 },
@@ -174,8 +175,10 @@ export default function HomeScreen() {
             <View style={styles.membershipDivider} />
             <View style={styles.membershipBottom}>
               <View style={styles.membershipStat}>
-                <Text style={styles.membershipStatValue}>{Math.floor(walletBalance / 1000).toLocaleString('vi-VN')}</Text>
-                <Text style={styles.membershipStatLabel}>điểm</Text>
+                <Text style={styles.membershipStatValue}>
+                  {vndToCoins(walletBalance).toLocaleString('en-US')}
+                </Text>
+                <Text style={styles.membershipStatLabel}>coin</Text>
               </View>
               <View style={styles.membershipStatDivider} />
               <View style={styles.membershipStat}>

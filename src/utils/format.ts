@@ -6,6 +6,17 @@
  */
 
 export const VND_PER_POINT = 1000; // Tỉ giá quy đổi: 1 điểm = 1000đ
+export const VND_PER_COIN = 1000; // Đơn vị hiển thị ví: 1 coin = 1.000 VNĐ
+
+/** Quy đổi số dư ví từ VND sang coin nguyên, luôn làm tròn xuống */
+export const vndToCoins = (vnd: number): number => Math.floor(vnd / VND_PER_COIN);
+
+/** Quy đổi số coin người dùng nhập sang số tiền VND backend yêu cầu */
+export const coinsToVnd = (coins: number): number => coins * VND_PER_COIN;
+
+/** Định dạng số coin nguyên; ví dụ 12.500 VND được hiển thị là 12 coin */
+export const formatCoins = (vnd: number): string =>
+  `${vndToCoins(vnd).toLocaleString("en-US")} coin`;
 
 /** Quy đổi số tiền (VND) sang số điểm (làm tròn xuống) */
 export const vndToPoints = (vnd: number): number => {

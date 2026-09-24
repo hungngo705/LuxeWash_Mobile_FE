@@ -9,7 +9,7 @@ import {
   MembershipConfig,
 } from "@/constants/luxeTheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { vndToPoints } from "@/utils/format";
+import { formatCoins } from "@/utils/format";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -35,16 +35,13 @@ export default function ProfileScreen() {
     ? MembershipConfig[currentUser.membershipTier]
     : MembershipConfig.standard;
 
-  const walletPoints = vndToPoints(walletBalance);
-  const displayPoints = walletPoints;
-
   const menuItems = [
     {
       icon: "credit-card",
       iconColor: "#006689",
       bgColor: LuxeColors.primaryContainer + '18',
       title: "Ví & Thanh toán",
-      subtitle: `${displayPoints.toLocaleString('vi-VN')} điểm`,
+      subtitle: formatCoins(walletBalance),
       onPress: () => router.push("/wallet" as any),
     },
     {

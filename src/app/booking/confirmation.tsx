@@ -22,7 +22,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { vndToPoints, formatVnd } from "@/utils/format";
+import { formatCoins, VND_PER_COIN } from "@/utils/format";
 import { Header } from "@/components/ui/Header";
 import { ProgressSteps } from "@/components/ui/ProgressSteps";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
@@ -394,11 +394,11 @@ export default function BookingConfirmationScreen() {
                 <Feather name="credit-card" size={22} color={LuxeColors.primaryContainer} />
               </View>
               <View style={styles.paymentInfo}>
-                <Text style={styles.paymentTitle}>Thanh toán bằng điểm</Text>
+                <Text style={styles.paymentTitle}>Thanh toán bằng coin</Text>
                 <Text style={[styles.paymentBalance, walletBalance < finalPrice && styles.paymentBalanceDanger]}>
-                  {vndToPoints(walletBalance).toLocaleString("vi-VN")} điểm
+                  {formatCoins(walletBalance)}
                 </Text>
-                <Text style={styles.paymentSubtext}>(≈ {formatVnd(walletBalance)})</Text>
+                <Text style={styles.paymentSubtext}>1 coin = {VND_PER_COIN.toLocaleString("en-US")} VNĐ</Text>
               </View>
               {walletBalance < finalPrice && (
                 <View style={styles.warningBadge}>
