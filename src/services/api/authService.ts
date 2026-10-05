@@ -57,6 +57,7 @@ export interface UserProfile {
   totalPoint: number; // Tổng điểm tích luỹ
   promotionPoint: number; // Điểm khuyến mãi
   churnScore: number; // Điểm dự đoán nguy cơ rời bỏ (dùng cho phân tích)
+  totalWashes: number; // Số lượt rửa đã hoàn tất
   vehicles: {
     licensePlate: string;
     vehicleTypeId: number;

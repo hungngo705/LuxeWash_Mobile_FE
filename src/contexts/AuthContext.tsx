@@ -40,6 +40,7 @@ export interface AuthUser {
   membershipId: string;
   membershipTier: "standard" | "silver" | "gold" | "platinum" | "diamond";
   loyaltyPoints: number;
+  totalWashes: number;
   createdAt: Date;
   updatedAt: Date;
   vehicles: Vehicle[];
@@ -189,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             membershipTier: (profile.tierName?.toLowerCase() ||
               "standard") as any,
             loyaltyPoints: profile.totalPoint ?? 0,
+            totalWashes: profile.totalWashes ?? 0,
             promotionPoint: profile.promotionPoint ?? 0,
             churnScore: profile.churnScore ?? 0,
             status: profile.status ?? "Active",
@@ -287,6 +289,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         membershipId: profile?.tierName?.toLowerCase() || "standard",
         membershipTier: (profile?.tierName?.toLowerCase() || "standard") as any,
         loyaltyPoints: profile?.totalPoint ?? 0,
+        totalWashes: profile?.totalWashes ?? 0,
         promotionPoint: profile?.promotionPoint ?? 0,
         churnScore: profile?.churnScore ?? 0,
         status: profile?.status ?? "Active",
@@ -341,6 +344,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             membershipTier: (profile?.tierName?.toLowerCase() ||
               prev.user.membershipTier) as any,
             loyaltyPoints: profile?.totalPoint ?? prev.user.loyaltyPoints,
+            totalWashes: profile?.totalWashes ?? prev.user.totalWashes,
             promotionPoint: profile?.promotionPoint ?? prev.user.promotionPoint,
             churnScore: profile?.churnScore ?? prev.user.churnScore,
             status: profile?.status ?? prev.user.status,
@@ -420,6 +424,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       membershipId: profile?.tierName?.toLowerCase() || "standard",
       membershipTier: (profile?.tierName?.toLowerCase() || "standard") as any,
       loyaltyPoints: profile?.totalPoint ?? 0,
+      totalWashes: profile?.totalWashes ?? 0,
       promotionPoint: profile?.promotionPoint ?? 0,
       churnScore: profile?.churnScore ?? 0,
       status: profile?.status ?? "Active",

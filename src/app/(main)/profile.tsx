@@ -10,8 +10,8 @@ import {
 } from "@/constants/luxeTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCoins } from "@/utils/format";
-import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useRef, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
@@ -29,6 +29,14 @@ export default function ProfileScreen() {
   const { user, walletBalance, logout, refreshProfile, refreshWallet } = useAuth();
   const { confirm } = useConfirmDialog();
   const [refreshing, setRefreshing] = useState(false);
+  const refreshProfileRef = useRef(refreshProfile);
+  refreshProfileRef.current = refreshProfile;
+
+  useFocusEffect(useCallback(() => {
+    void refreshProfileRef.current().catch(() => {
+      // Keep the last known profile if the network is unavailable.
+    });
+  }, []));
 
   const currentUser = user;
   const membershipInfo = currentUser
@@ -175,7 +183,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.profileStatDivider} />
               <View style={styles.profileStat}>
-                <Text style={styles.profileStatValue}>12</Text>
+                <Text style={styles.profileStatValue}>{currentUser?.totalWashes ?? 0}</Text>
                 <Text style={styles.profileStatLabel}>Lần rửa</Text>
               </View>
             </View>
