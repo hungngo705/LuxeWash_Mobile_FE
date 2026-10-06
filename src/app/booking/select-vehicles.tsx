@@ -9,10 +9,12 @@ import { ProgressSteps } from "@/components/ui/ProgressSteps";
 import { LuxeColors, LuxeShadows } from "@/constants/luxeTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Vehicle } from "@/contexts/AuthContext";
+import { bookingService, type ActiveVehicleBooking } from "@/services/api/bookingService";
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
@@ -21,10 +23,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
 
 const DEFAULT_BRANCH_ID = 1;
 const DEFAULT_BRANCH_NAME = "LuxeWash";
+const normalizePlate = (plate: string) => plate.replace(/[\s.-]/g, "").toUpperCase();
 
 export default function SelectVehiclesScreen() {
   const router = useRouter();
@@ -35,13 +37,49 @@ export default function SelectVehiclesScreen() {
   const branchNameParam = (params.branchName as string) || DEFAULT_BRANCH_NAME;
 
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [activeBookings, setActiveBookings] = useState<ActiveVehicleBooking[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+  const [bookingError, setBookingError] = useState(false);
   const vehicles = user?.vehicles || [];
 
+  const loadActiveBookings = useCallback(async () => {
+    setLoadingBookings(true);
+    setBookingError(false);
+    try {
+      const response = await bookingService.getActiveVehicleBookings();
+      if (response.statusCode !== 200 || !Array.isArray(response.data)) {
+        throw new Error("Không thể kiểm tra lịch hiện tại của xe.");
+      }
+      setActiveBookings(response.data);
+    } catch {
+      setActiveBookings([]);
+      setBookingError(true);
+    } finally {
+      setLoadingBookings(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    void loadActiveBookings();
+  }, [loadActiveBookings]));
+
+  const activeBookingFor = useCallback((plate: string) =>
+    activeBookings.find((booking) => normalizePlate(booking.licensePlate) === normalizePlate(plate)),
+  [activeBookings]);
+
+  useEffect(() => {
+    if (selectedVehicle && activeBookingFor(selectedVehicle.licensePlate)) {
+      setSelectedVehicle(null);
+    }
+  }, [activeBookingFor, selectedVehicle]);
+
   const handleSelectVehicle = (vehicle: Vehicle) => {
+    if (loadingBookings || bookingError || activeBookingFor(vehicle.licensePlate)) return;
     setSelectedVehicle(vehicle);
   };
 
   const handleContinue = () => {
+    if (loadingBookings || bookingError || (selectedVehicle && activeBookingFor(selectedVehicle.licensePlate))) return;
     if (!selectedVehicle) {
       alert("Vui lòng chọn 1 xe để đặt lịch");
       return;
@@ -103,6 +141,17 @@ export default function SelectVehiclesScreen() {
         </View>
 
         {/* Vehicle List */}
+        {loadingBookings && (
+          <View style={styles.bookingCheck}>
+            <ActivityIndicator color={LuxeColors.primaryContainer} />
+            <Text style={styles.bookingCheckText}>Đang kiểm tra lịch của xe...</Text>
+          </View>
+        )}
+        {bookingError && (
+          <TouchableOpacity style={styles.bookingCheck} onPress={() => void loadActiveBookings()}>
+            <Text style={styles.bookingCheckText}>Không thể kiểm tra lịch hiện tại. Nhấn để thử lại.</Text>
+          </TouchableOpacity>
+        )}
         {vehicles.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconWrap}>
@@ -127,60 +176,76 @@ export default function SelectVehiclesScreen() {
         ) : (
           <View style={styles.vehicleList}>
             {vehicles.map((vehicle) => {
+              const activeBooking = activeBookingFor(vehicle.licensePlate);
               const isSelected =
                 selectedVehicle?.licensePlate === vehicle.licensePlate;
               return (
-                <TouchableOpacity
-                  key={vehicle.licensePlate}
-                  style={[
-                    styles.vehicleCard,
-                    isSelected && styles.vehicleCardSelected,
-                  ]}
-                  onPress={() => handleSelectVehicle(vehicle)}
-                  activeOpacity={0.8}
-                >
-                  {/* Radio indicator */}
-                  <View
-                    style={[styles.radio, isSelected && styles.radioSelected]}
-                  >
-                    {isSelected && <View style={styles.radioInner} />}
-                  </View>
-
-                  <View
+                <View key={vehicle.licensePlate}>
+                  <TouchableOpacity
                     style={[
-                      styles.vehicleImageWrap,
-                      isSelected && styles.vehicleImageWrapSelected,
+                      styles.vehicleCard,
+                      isSelected && styles.vehicleCardSelected,
+                      !!activeBooking && styles.vehicleCardBlocked,
                     ]}
+                    onPress={() => handleSelectVehicle(vehicle)}
+                    disabled={loadingBookings || bookingError || !!activeBooking}
+                    activeOpacity={0.8}
                   >
-                    {vehicle.imageUrl ? (
-                      <Image
-                        source={{ uri: vehicle.imageUrl }}
-                        style={styles.vehicleImage}
-                      />
-                    ) : (
-                      <View style={styles.vehicleImagePlaceholder}>
-                        <Feather
-                          name="truck"
-                          size={28}
-                          color={LuxeColors.outline}
-                        />
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.vehicleInfo}>
-                    <Text style={styles.vehicleName}>
-                      {vehicle.model
-                        ? `${vehicle.brand} · ${vehicle.model}`
-                        : vehicle.brand}
-                    </Text>
-                    <View style={styles.plateBadge}>
-                      <Text style={styles.plateText}>
-                        {vehicle.licensePlate}
-                      </Text>
+                    {/* Radio indicator */}
+                    <View
+                      style={[styles.radio, isSelected && styles.radioSelected]}
+                    >
+                      {isSelected && <View style={styles.radioInner} />}
                     </View>
-                  </View>
-                </TouchableOpacity>
+
+                    <View
+                      style={[
+                        styles.vehicleImageWrap,
+                        isSelected && styles.vehicleImageWrapSelected,
+                      ]}
+                    >
+                      {vehicle.imageUrl ? (
+                        <Image
+                          source={{ uri: vehicle.imageUrl }}
+                          style={styles.vehicleImage}
+                        />
+                      ) : (
+                        <View style={styles.vehicleImagePlaceholder}>
+                          <Feather
+                            name="truck"
+                            size={28}
+                            color={LuxeColors.outline}
+                          />
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={styles.vehicleInfo}>
+                      <Text style={styles.vehicleName}>
+                        {vehicle.model
+                          ? `${vehicle.brand} · ${vehicle.model}`
+                          : vehicle.brand}
+                      </Text>
+                      <View style={styles.plateBadge}>
+                        <Text style={styles.plateText}>
+                          {vehicle.licensePlate}
+                        </Text>
+                      </View>
+                      {activeBooking && (
+                        <Text style={styles.activeBookingLabel}>Đã có lịch #{activeBooking.bookingId}</Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                  {activeBooking && (
+                    <TouchableOpacity
+                      style={styles.viewBookingButton}
+                      onPress={() => router.push(`/booking/${activeBooking.bookingId}` as any)}
+                    >
+                      <Text style={styles.viewBookingText}>Xem lịch hiện tại</Text>
+                      <Feather name="arrow-right" size={14} color={LuxeColors.primaryContainer} />
+                    </TouchableOpacity>
+                  )}
+                </View>
               );
             })}
           </View>
@@ -212,7 +277,7 @@ export default function SelectVehiclesScreen() {
       <BottomActionBar
         title={selectedVehicle ? "TIẾP THEO" : "CHỌN XE ĐỂ TIẾP TỤC"}
         onPress={handleContinue}
-        disabled={!selectedVehicle}
+        disabled={!selectedVehicle || loadingBookings || bookingError}
         icon="arrow-right"
       />
     </SafeAreaView>
@@ -311,6 +376,39 @@ const styles = StyleSheet.create({
     ...LuxeShadows.md,
     elevation: 0,
     shadowOpacity: 0,
+  },
+  vehicleCardBlocked: {
+    opacity: 0.65,
+  },
+  bookingCheck: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  bookingCheckText: {
+    color: LuxeColors.onSurfaceVariant,
+    fontSize: 13,
+  },
+  activeBookingLabel: {
+    color: LuxeColors.tertiary,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  viewBookingButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+  },
+  viewBookingText: {
+    color: LuxeColors.primaryContainer,
+    fontSize: 13,
+    fontWeight: "700",
   },
   radio: {
     width: 22,

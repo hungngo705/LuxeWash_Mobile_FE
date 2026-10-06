@@ -261,6 +261,13 @@ export interface MyBookingItem {
   checkOutImageUrl?: string | null;
 }
 
+export interface ActiveVehicleBooking {
+  bookingId: number;
+  licensePlate: string;
+  scheduledTime: string;
+  status: string;
+}
+
 /** Bộ lọc khi lấy danh sách booking của khách */
 export interface GetMyBookingsParams {
   startDate?: string;
@@ -344,6 +351,11 @@ export const bookingService = {
   /** Lấy danh sách booking của khách đang đăng nhập (có thể lọc theo ngày/trạng thái) */
   getMyBookings: async (params?: GetMyBookingsParams): Promise<ApiResponse<MyBookingItem[]>> => {
     return apiClient.get<MyBookingItem[]>('/bookings/me', params as Record<string, unknown> | undefined);
+  },
+
+  /** Lịch còn hiệu lực của các xe thuộc khách hàng, không giới hạn 50 lịch gần nhất. */
+  getActiveVehicleBookings: async (): Promise<ApiResponse<ActiveVehicleBooking[]>> => {
+    return apiClient.get<ActiveVehicleBooking[]>('/bookings/me/active-vehicles');
   },
 
   /** Huỷ một booking */
