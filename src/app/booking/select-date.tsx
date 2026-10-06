@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { bookingService, type TimeSlot } from "@/services/api";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -54,6 +54,43 @@ const PERIOD_LABEL: Record<string, string> = {
   evening: "Tối",
 };
 
+const getSlotStartMinutes = (timeRange: string): number | null => {
+  const startTime = timeRange.split("-")[0]?.trim();
+  const match = /^(\d{1,2}):(\d{2})$/.exec(startTime ?? "");
+
+  if (!match) return null;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+};
+
+const isSameLocalDate = (first: Date, second: Date) =>
+  first.getFullYear() === second.getFullYear() &&
+  first.getMonth() === second.getMonth() &&
+  first.getDate() === second.getDate();
+
+const isSlotBookable = (slot: TimeSlot, date: Date | null, now: Date) => {
+  if (!slot.isAvailable || !date || !isSameLocalDate(date, now)) {
+    return slot.isAvailable;
+  }
+
+  const slotStartMinutes = getSlotStartMinutes(slot.timeRange);
+
+  // Nếu backend trả về định dạng giờ lạ, giữ nguyên trạng thái từ backend.
+  if (slotStartMinutes === null) return slot.isAvailable;
+
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  // Không cho đặt slot đã qua hoặc slot đang chứa thời điểm hiện tại.
+  return slotStartMinutes > currentMinutes;
+};
+
 export default function SelectDateScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -87,6 +124,7 @@ export default function SelectDateScreen() {
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
 
   const loadSlots = async (date: Date) => {
     setLoadingSlots(true);
@@ -105,7 +143,7 @@ export default function SelectDateScreen() {
       } else {
         setSlots([]);
       }
-    } catch (e) {
+    } catch {
       alert("Không thể tải lịch trống");
       setSlots([]);
     } finally {
@@ -171,8 +209,24 @@ export default function SelectDateScreen() {
     return weeks;
   }, [calendarDays]);
 
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 30_000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (
+      selectedSlot &&
+      !isSlotBookable(selectedSlot, selectedDate, currentTime)
+    ) {
+      setSelectedSlot(null);
+    }
+  }, [currentTime, selectedDate, selectedSlot]);
+
   const handleDateSelect = (day: DayCell) => {
     if (!day.date || day.isPast || day.isLocked) return;
+    setCurrentTime(new Date());
     setSelectedDate(day.date);
     setSelectedSlot(null);
     loadSlots(day.date);
@@ -394,8 +448,12 @@ export default function SelectDateScreen() {
                   <View style={styles.slotsSummary}>
                     <Feather name="zap" size={16} color="#F59E0B" />
                     <Text style={styles.slotsSummaryText}>
-                      {slots.filter((s) => s.isAvailable).length} khung giờ
-                      trống
+                      {
+                        slots.filter((slot) =>
+                          isSlotBookable(slot, selectedDate, currentTime),
+                        ).length
+                      }{" "}
+                      khung giờ trống
                     </Text>
                   </View>
 
@@ -409,24 +467,28 @@ export default function SelectDateScreen() {
                           {periodSlots.map((slot) => {
                             const isSelected =
                               selectedSlot?.slotId === slot.slotId;
+                            const isAvailable = isSlotBookable(
+                              slot,
+                              selectedDate,
+                              currentTime,
+                            );
                             return (
                               <TouchableOpacity
                                 key={slot.slotId}
                                 style={[
                                   styles.timeSlot,
-                                  !slot.isAvailable &&
-                                    styles.timeSlotUnavailable,
+                                  !isAvailable && styles.timeSlotUnavailable,
                                   isSelected && styles.timeSlotSelected,
                                 ]}
                                 onPress={() =>
-                                  slot.isAvailable && setSelectedSlot(slot)
+                                  isAvailable && setSelectedSlot(slot)
                                 }
-                                disabled={!slot.isAvailable}
+                                disabled={!isAvailable}
                               >
                                 <Text
                                   style={[
                                     styles.timeSlotText,
-                                    !slot.isAvailable &&
+                                    !isAvailable &&
                                       styles.timeSlotTextUnavailable,
                                     isSelected && styles.timeSlotTextSelected,
                                   ]}
